@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -33,8 +33,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Transaction } from "@/types";
+import { useTransactionStore } from '@/components/stores/transaction-store';
 import {formatAmount} from "@/lib/utils";
 import dayjs from "dayjs";
+import { SkeletonTable } from '@/components/skeletons/table-skeleton';
+
 
 export const columns: ColumnDef<Transaction>[] = [
     {
@@ -74,7 +77,16 @@ export const columns: ColumnDef<Transaction>[] = [
     },
     {
         accessorKey: "amount",
-        header: "Amount",
+        header: ({ column }) => (
+            <Button
+                variant="ghost"
+                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                className="text-left px--4"
+            >
+                Amount
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+        ),
         id: "Amount",
         cell: ({ row }) => {
             const amount = row.original.amount;
@@ -156,52 +168,79 @@ export const columns: ColumnDef<Transaction>[] = [
 
 const STORAGE_KEY = "transactionsData";
 
+// export function TransactionsTable() {
+//     const [transactions, setTransactions] = useState<Transaction[]>([]);
+//     const [loading, setLoading] = useState(true);
+//     const [sorting, setSorting] = React.useState<SortingState>([]);
+//     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+//     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+//     const [rowSelection, setRowSelection] = React.useState({});
+//
+//     useEffect(() => {
+//         let storedData;
+//         //storedData= sessionStorage.getItem(STORAGE_KEY);
+//         storedData = null;
+//         if (storedData) {
+//             // -------------------------------------------------------------
+//             // Sort stored data by booking date
+//             storedData = JSON.stringify(JSON.parse(storedData).sort((a: { bookingDate: string | number | Date; }, b: { bookingDate: string | number | Date; }) => {
+//                 return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
+//             }));
+//             // -------------------------------------------------------------
+//             setTransactions(JSON.parse(storedData));
+//             setLoading(false);
+//         } else {
+//             const fetchTransactions = async () => {
+//                 try {
+//                     const response = await fetch("/api/transactions");
+//                     const data: Transaction[] = await response.json();
+//                     // -------------------------------------------------------------
+//                     // Sort data by booking date
+//                     data.sort((a: Transaction, b: Transaction) => {
+//                         const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : -Infinity;
+//                         const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : -Infinity;
+//                         return dateB - dateA;
+//                     });
+//                     // -------------------------------------------------------------
+//                     setTransactions(data);
+//                     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+//                 } catch (error) {
+//                     console.error("Error fetching transactions:", error);
+//                 } finally {
+//                     setLoading(false);
+//                 }
+//             };
+//
+//             fetchTransactions();
+//         }
+//     }, []);
 export function TransactionsTable() {
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { transactions, loading, setTransactions, setLoading } = useTransactionStore();
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = React.useState({});
-
     useEffect(() => {
-        let storedData;
-        //storedData= sessionStorage.getItem(STORAGE_KEY);
-        storedData = null;
-        if (storedData) {
-            // -------------------------------------------------------------
-            // Sort stored data by booking date
-            storedData = JSON.stringify(JSON.parse(storedData).sort((a: { bookingDate: string | number | Date; }, b: { bookingDate: string | number | Date; }) => {
-                return new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime();
-            }));
-            // -------------------------------------------------------------
-            setTransactions(JSON.parse(storedData));
-            setLoading(false);
-        } else {
-            const fetchTransactions = async () => {
-                try {
-                    const response = await fetch("/api/transactions");
-                    const data: Transaction[] = await response.json();
-                    // -------------------------------------------------------------
-                    // Sort data by booking date
-                    data.sort((a: Transaction, b: Transaction) => {
-                        const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : -Infinity;
-                        const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : -Infinity;
-                        return dateB - dateA;
-                    });
-                    // -------------------------------------------------------------
-                    setTransactions(data);
-                    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                } catch (error) {
-                    console.error("Error fetching transactions:", error);
-                } finally {
-                    setLoading(false);
-                }
-            };
+        const fetchTransactions = async () => {
+            try {
+                const response = await fetch("/api/transactions");
+                const data: Transaction[] = await response.json();
+                data.sort((a: Transaction, b: Transaction) => {
+                    const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : -Infinity;
+                    const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : -Infinity;
+                    return dateB - dateA;
+                });
+                setTransactions(data);
+            } catch (error) {
+                console.error("Error fetching transactions:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-            fetchTransactions();
-        }
-    }, []);
+        fetchTransactions();
+    }, [setLoading, setTransactions]);
+
 
     const table = useReactTable({
         data: transactions,
@@ -231,10 +270,12 @@ export function TransactionsTable() {
 
 
     if (loading) {
-        return <p className={"px-4"}>Loading...</p>;
+        return (
+          SkeletonTable()
+        );
     }
 
-    console.log(transactions);
+
 
     return (
         <div className="flex flex-col max-h-full max-w-full overflow-hidden">

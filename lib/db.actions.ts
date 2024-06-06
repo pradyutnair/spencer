@@ -54,6 +54,9 @@ export async function pullTransactionsDB(requisitionId: string) {
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
         Query.contains('requisitionId', requisitionId),
+        // Get the latest transactions first
+        Query.orderDesc('bookingDateTime'),
+        // Limit the number of transactions to 1000
         Query.limit(1000)
       ]
     );

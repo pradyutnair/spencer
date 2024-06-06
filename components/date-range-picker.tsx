@@ -8,20 +8,31 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
-import { addDays, format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
+import { DateRangeContext } from '@/components/contexts/date-range-context';
+import { useContext } from 'react';
+import {useDateRangeStore} from '@/components/stores/date-range-store';
 
-export function CalendarDateRangePicker({
-  className
-}: React.HTMLAttributes<HTMLDivElement>) {
+
+export function CalendarDateRangePicker() {
   const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(2023, 0, 20),
-    to: addDays(new Date(2023, 0, 20), 20)
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
   });
 
+  //const { setDateRange } = useContext(DateRangeContext);
+  const { dateRange, setDateRange } = useDateRangeStore();
+
+  const handleDateChange = (newDate: DateRange | undefined) => {
+    setDateRange(newDate);
+    setDate(newDate);
+    console.log('Selected date range:', newDate);
+  };
+
   return (
-    <div className={cn('grid gap-2', className)}>
+    <div className={cn('grid gap-2')}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -53,7 +64,7 @@ export function CalendarDateRangePicker({
             mode="range"
             defaultMonth={date?.from}
             selected={date}
-            onSelect={setDate}
+            onSelect={handleDateChange}
             numberOfMonths={2}
           />
         </PopoverContent>

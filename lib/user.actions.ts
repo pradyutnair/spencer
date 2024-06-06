@@ -1,0 +1,110 @@
+'use server';
+
+import {createAdminClient, createSessionClient} from "@/lib/appwrite";
+import {ID} from "node-appwrite";
+import {cookies} from "next/headers";
+import {parseStringify} from "@/lib/utils";
+import {redirect} from "next/navigation";
+
+export const signIn = async (formData: FormData) => {
+    "use server";
+    try {
+        const {account} = await createAdminClient();
+        const email = formData.get("email") as string;
+        const password = formData.get("password") as string;
+        const response = await account.createEmailPasswordSession(email, password);
+        console.log("FUNCTION signIn RESPONSE:", parseStringify(response));
+
+        cookies().set("appwrite-session", response.secret, {
+            path: "/",
+            httpOnly: true,
+            secure: true,
+        });
+
+        redirect("/");
+
+    } catch (error) {
+        console.error('Error:', error);
+        throw error; // propagate the error to the caller
+    }
+}
+
+
+export async function getLoggedInUser() {
+    try {
+        const {account} = await createSessionClient();
+        const user = await account.get();
+        console.log('User from getLoggedInUser:', user); // Log the user
+        return parseStringify(user);
+    } catch (error) {
+        console.error('Error in getLoggedInUser:', error); // Log the error
+        return null;
+    }
+}
+
+export async function signUpWithEmail(formData: FormData) {
+    "use server";
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const firstName = formData.get("first-name") as string;
+    const lastName = formData.get("last-name") as string;
+
+    // Combine first and last name
+    const name = `${firstName} ${lastName}`;
+
+    // Check if any of the fields are empty
+    if (!email || !password || !firstName || !lastName) {
+        throw new Error('Invalid form data');
+    }
+
+    // Create a new profile
+    const {account, database} = await createAdminClient();
+
+    // Unique ID for the user
+    const userId = ID.unique();
+
+    // Create a new profile with the provided email, password, and name
+    await account.create(userId, email, password, name);
+
+    // Create a new document in the database
+    const newUser = await database.createDocument(
+        process.env.APPWRITE_DATABASE_ID!,
+        process.env.APPWRITE_USER_COLLECTION_ID!,
+        ID.unique(), // Unique ID for the document
+        {
+            userId: userId, // User ID
+            email: email,
+            firstName: firstName,
+            lastName: lastName,
+        }
+    );
+
+    if (!newUser) {
+        throw new Error('Failed to write user to database');
+    }
+
+    // Initialize the session
+    const session = await account.createEmailPasswordSession(email, password);
+
+    cookies().set("appwrite-session", session.secret, {
+        path: "/",
+        httpOnly: true,
+        sameSite: "strict",
+        secure: true,
+    });
+
+    redirect("/select-country");
+}
+
+export const logoutAccount = async () => {
+    try {
+        const {account} = await createSessionClient();
+        cookies().delete("appwrite-session");
+        await account.deleteSession("current");
+        redirect("/login");
+    } catch (error) {
+        console.error('Error:', error);
+        throw error; // propagate the error to the caller
+    }
+}
+

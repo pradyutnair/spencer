@@ -111,41 +111,31 @@ export type Employee = {
   profile_picture?: string | null; // Profile picture can be a string (URL) or null (if no picture)
 };
 
+
+
 export const navItems: NavItem[] = [
   {
-    title: 'Dashboard',
-    href: '/dashboard',
+    title: 'Home',
+    href: '/',
     icon: 'dashboard',
-    label: 'Dashboard'
+    label: 'home'
   },
   {
-    title: 'User',
-    href: '/dashboard/user',
-    icon: 'user',
-    label: 'user'
+    title: 'My Banks',
+    href: '/my-banks',
+    icon: 'banks',
+    label: 'banks'
   },
   {
-    title: 'Employee',
-    href: '/dashboard/employee',
-    icon: 'employee',
-    label: 'employee'
+    title: 'Transaction History',
+    href: '/transaction-history',
+    icon: 'transaction',
+    label: 'transaction'
   },
   {
     title: 'Profile',
-    href: '/dashboard/profile',
+    href: '/profile',
     icon: 'profile',
     label: 'profile'
-  },
-  {
-    title: 'Kanban',
-    href: '/dashboard/kanban',
-    icon: 'kanban',
-    label: 'kanban'
-  },
-  {
-    title: 'Login',
-    href: '/',
-    icon: 'login',
-    label: 'login'
   }
 ];

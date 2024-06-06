@@ -22,10 +22,10 @@ interface DashboardNavProps {
 }
 
 export function DashboardNav({
-  items,
-  setOpen,
-  isMobileNav = false
-}: DashboardNavProps) {
+                               items,
+                               setOpen,
+                               isMobileNav = false
+                             }: DashboardNavProps) {
   const path = usePathname();
   const { isMinimized } = useSidebar();
 

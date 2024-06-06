@@ -11,20 +11,25 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { signOut, useSession } from 'next-auth/react';
-export function UserNav() {
-  const { data: session } = useSession();
-  if (session) {
+import Link from 'next/link';
+
+export  function UserNav(user: any) {
+  // Get the user passed down from app/root/layout -> header -> UserNav
+  const user1 = user.user.user;
+  const first_name = user1.name.split(' ')[0];
+  const last_name = user1.name.split(' ')[1];
+
+  if (user1) {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Button variant="ghost" className="relative h-8 w-8 rounded-full mr-4">
             <Avatar className="h-8 w-8">
-              <AvatarImage
-                src={session.user?.image ?? ''}
-                alt={session.user?.name ?? ''}
-              />
-              <AvatarFallback>{session.user?.name?.[0]}</AvatarFallback>
+                <AvatarImage
+                    src={user1.image ?? ''}
+                    alt={user1.name ?? ''}
+                />
+                <AvatarFallback>{first_name[0] + last_name[0] ?? ''}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
@@ -32,17 +37,17 @@ export function UserNav() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
-                {session.user?.name}
+                {user1.name}
               </p>
               <p className="text-xs leading-none text-muted-foreground">
-                {session.user?.email}
+                {user1.email}
               </p>
             </div>
           </DropdownMenuLabel>
-          <DropdownMenuSeparator />
+          <DropdownMenuSeparator/>
           <DropdownMenuGroup>
             <DropdownMenuItem>
-              Profile
+              <Link href="/profile">Profile</Link>
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
             <DropdownMenuItem>
@@ -55,11 +60,7 @@ export function UserNav() {
             </DropdownMenuItem>
             <DropdownMenuItem>New Team</DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => signOut()}>
-            Log out
-            <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-          </DropdownMenuItem>
+          <DropdownMenuSeparator/>
         </DropdownMenuContent>
       </DropdownMenu>
     );

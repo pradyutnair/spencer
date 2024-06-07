@@ -1,4 +1,4 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { Transaction } from '@/types/index';
 
 type State = {

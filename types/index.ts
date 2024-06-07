@@ -400,7 +400,7 @@ export type Transaction = {
   creditorName?: string;
   creditorAccount?: string;
   bankTransactionCode?: string;
-  bookingDate?: string;  // Date as string
+  bookingDate: string;  // Date as string
   bookingDateTime?: string; // Date as string
   valueDate: string;     // Date as string
   valueDateTime?: string; // Date as string

@@ -37,6 +37,7 @@ import { useTransactionStore } from '@/components/stores/transaction-store';
 import {formatAmount} from "@/lib/utils";
 import dayjs from "dayjs";
 import { SkeletonTable } from '@/components/skeletons/table-skeleton';
+import { useDateRangeStore } from '@/components/stores/date-range-store';
 
 
 export const columns: ColumnDef<Transaction>[] = [
@@ -220,6 +221,8 @@ export function TransactionsTable() {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = React.useState({});
+
+
     useEffect(() => {
         const fetchTransactions = async () => {
             try {

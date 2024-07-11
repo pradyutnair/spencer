@@ -412,9 +412,9 @@ export type Transaction = {
   Week?: number;
   Day?: number;
   DayOfWeek?: number;
-  Payee?: string;
+  Payee: string;
   Bank?: string;
-
+  category?: string;
 };
 
 export type TransactionsResponse = {

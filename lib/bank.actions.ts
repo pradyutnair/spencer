@@ -1,11 +1,11 @@
 // lib/bank.actions.ts
 import { BankData, Transaction } from '@/types';
-import dayjs from "dayjs";
-import { createGoCardlessClient } from "@/lib/gocardless";
-import { createAdminClient } from "@/lib/appwrite";
-import { getLoggedInUser } from "@/lib/user.actions";
-import { Query } from "node-appwrite";
-import weekOfYear from "dayjs/plugin/weekOfYear";
+import dayjs from 'dayjs';
+import { createGoCardlessClient } from '@/lib/gocardless';
+import { createAdminClient } from '@/lib/appwrite';
+import { getLoggedInUser } from '@/lib/user.actions';
+import { Query } from 'node-appwrite';
+import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { pushTransactionsDB } from '@/lib/db.actions';
 
 dayjs.extend(weekOfYear);
@@ -113,6 +113,7 @@ export const getBankData = async (): Promise<BankData[]> => {
 };
 
 // Retrieve transactions for a given array of requisitionIds from GC
+// Retrieve transactions for a given array of requisitionIds from GC
 export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, dateTo }: { requisitionIds: string[], bankNames?: string[], dateFrom?: string, dateTo?: string }): Promise<Transaction[]> => {
     const client = await createGoCardlessClient();
     let allTransactions: Transaction[] = [];
@@ -144,7 +145,7 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
 
             const accountTransactions = await Promise.all(accountTransactionsPromises);
             const flattenedTransactions = accountTransactions.flat();
-            const correctedTransactions = applyDataCorrections(flattenedTransactions, bankName);
+            const correctedTransactions = await applyDataCorrections(flattenedTransactions, bankName);
 
             allTransactions.push(...correctedTransactions);
 
@@ -194,7 +195,7 @@ const checkLatestTransaction = async (requisitionId: string): Promise<string> =>
 };
 
 
-const applyDataCorrections = (transactions: Transaction[], bankName?: string): Transaction[] => {
+const applyDataCorrections = async (transactions: Transaction[], bankName?: string): Promise<Transaction[]> => {
     console.log(`Applying data corrections to ${transactions.length} transactions for ${bankName}`);
     // Check if the transactions array contains data
     if (!Array.isArray(transactions) || transactions.length === 0) {
@@ -218,14 +219,16 @@ const applyDataCorrections = (transactions: Transaction[], bankName?: string): T
 
     const correctedTransactions: Transaction[] = [];
 
-    transactions.forEach(transaction => {
-        const { transactionAmount,
+    for (const transaction of transactions) {
+        const {
+            transactionAmount,
             bookingDate,
             creditorName,
             debtorName,
             creditorAccount,
             debtorAccount,
-            remittanceInformationUnstructuredArray } = transaction;
+            remittanceInformationUnstructuredArray
+        } = transaction;
 
         // Extract amount and currency
         const amount = parseFloat(transactionAmount.amount);
@@ -252,12 +255,20 @@ const applyDataCorrections = (transactions: Transaction[], bankName?: string): T
         let payee = firstColumn || secondColumn || remittanceInfo;
         if (!payee) {
             payee = "Unknown";
-        } if (typeof payee === 'object') {
+        }
+        if (typeof payee === 'object') {
             // Get the string representation of the object
             payee = JSON.stringify(payee);
 
         }
         payee = payee.replace(/\s+/g, ' ').trim();
+        // Remove special characters
+        payee = payee.replace(/[^a-zA-Z0-9 ]/g, ' ');
+
+        // Logic for categorizing transactions
+        let category = await getCategory(payee);
+        console.log(`Category for ${payee}: ${category}`)
+
 
         // Check words to remove in all three columns
         const containsWordsToRemove = wordsToRemoveStr.test(payee);
@@ -287,11 +298,12 @@ const applyDataCorrections = (transactions: Transaction[], bankName?: string): T
                 DayOfWeek: dayOfWeek,
                 Payee: payee,
                 Bank: bankName,
-                Description: remittanceInfo
+                Description: remittanceInfo,
+                category: category
             };
             correctedTransactions.push(correctedTransaction);
         }
-    });
+    }
 
     // Sort the transactions by booking date in descending order
     correctedTransactions.sort((a, b) => dayjs(b.bookingDate).unix() - dayjs(a.bookingDate).unix());
@@ -302,3 +314,41 @@ const applyDataCorrections = (transactions: Transaction[], bankName?: string): T
 
     return correctedTransactions;
 };
+
+// Wrap your code in an async function
+const getCategory = async (payee: string): Promise<string> => {
+    const category_url = 'https://appwrite-render.onrender.com/predict';
+    try {
+        const response = await fetch(category_url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                Payee: payee,
+            })
+        });
+        const data = await response.json();
+        return data.category;
+    } catch (error) {
+        console.error('Error getting category:', error);
+        return "Uncategorized";
+    }
+};
+
+export const createAccountBalanceBreakdown = async (bankData: BankData[], currency: string) => {
+    // For each bank, sum the balances for the given currency and return the list of bank names and total balances
+    const accountBalances = bankData.map(({ bankName, balances }) => {
+        const totalBalance = Object.values(balances).reduce((acc, { amount, currency }) => {
+            if (currency === currency) {
+                return acc + parseFloat(amount);
+            }
+            return acc;
+        }, 0);
+
+        return { bankName, totalBalance };
+    });
+
+
+
+}

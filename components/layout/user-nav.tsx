@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import Link from 'next/link';
+import { logoutAccount } from '@/lib/user.actions';
 
 export  function UserNav(user: any) {
   // Get the user passed down from app/root/layout -> header -> UserNav
@@ -46,10 +47,12 @@ export  function UserNav(user: any) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator/>
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <Link href="/profile">Profile</Link>
-              <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-            </DropdownMenuItem>
+            <Link href="/profile">
+              <DropdownMenuItem>
+                Profile
+                <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </Link>
             <DropdownMenuItem>
               Billing
               <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
@@ -58,7 +61,11 @@ export  function UserNav(user: any) {
               Settings
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem>New Team</DropdownMenuItem>
+            <form action={logoutAccount}>
+              <Button variant="ghost" type="submit" className="w-full text-left">
+                Sign out
+              </Button>
+            </form>
           </DropdownMenuGroup>
           <DropdownMenuSeparator/>
         </DropdownMenuContent>

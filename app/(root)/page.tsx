@@ -1,19 +1,11 @@
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
-import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle
-} from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getLoggedInUser } from '@/lib/user.actions';
-import { EuroIcon } from 'lucide-react';
 
 import CustomCard from '@/components/custom-card';
 import React from 'react';
+import SelectCurrency from '@/components/buttons/select-currency';
 
 export default async function page() {
     const user = await getLoggedInUser();
@@ -27,7 +19,7 @@ export default async function page() {
                   </h2>
                   <div className="hidden items-center space-x-2 md:flex">
                       <CalendarDateRangePicker />
-                      <Button>Download</Button>
+                      <SelectCurrency />
                   </div>
               </div>
               <Tabs defaultValue="overview" className="space-y-4">

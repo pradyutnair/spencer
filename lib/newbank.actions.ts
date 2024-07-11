@@ -238,6 +238,8 @@ export class BankActions {
                 payee = JSON.stringify(payee);
             }
             payee = payee.replace(/\s+/g, ' ').trim();
+            // Replace special characters with spaces
+            payee = payee.replace(/[^a-zA-Z0-9 ]/g, '');
 
             // Check words to remove in all three columns
             const containsWordsToRemove = wordsToRemoveStr.test(payee);

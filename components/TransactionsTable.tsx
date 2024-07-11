@@ -135,7 +135,11 @@ export const columns: ColumnDef<Transaction>[] = [
             return dateB.unix() - dateA.unix();
         }
     },
-
+    {
+      accessorKey: "category",
+      id: "Category",
+      header: "Category"
+    },
 
 
     {
@@ -281,7 +285,7 @@ export function TransactionsTable() {
 
 
     return (
-        <div className="flex flex-col max-h-full max-w-full overflow-hidden">
+        <div className="flex flex-col max-h-full max-w-full">
             <div className="flex items-center py-4 px-1">
                 <Input
                     placeholder="Filter Payee..."

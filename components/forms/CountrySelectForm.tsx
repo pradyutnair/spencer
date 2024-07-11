@@ -72,7 +72,7 @@ export function SelectCountryForm() {
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select your bank's country" className="opacity-75" />
                                 </SelectTrigger>
-                                <SelectContent className="shadow-lg border border-gray-200 rounded-md bg-white divide-y
+                                <SelectContent className="shadow-lg border border-gray-200 rounded-md divide-y
                                  divide-gray-200 w-full overflow-y-auto p-2 space-y-4 max-h-72">
                                     {europeanCountries.map((country) => (
                                         <SelectItem value={country.code} key={country.code}>
@@ -94,7 +94,7 @@ export function SelectCountryForm() {
 
                         <Button
                             type="submit"
-                            className="w-full text-zinc-950  hover:bg-zinc-950 hover:text-white disabled:opacity-50 bg-white"
+                            className="w-full text-zinc-950  hover:bg-zinc-900 hover:text-white disabled:opacity-50 bg-white"
                             disabled={loading}
                         >
                             {loading ? (
@@ -102,6 +102,13 @@ export function SelectCountryForm() {
                             ) : (
                                 'Submit'
                             )}
+                        </Button>
+                        <Button
+                          type="button" // Add this line
+                          onClick={() => router.push('/my-banks')}
+                          className="w-full text-zinc-950 hover:text-red-500 hover:border-2 hover:bg-white disabled:opacity-50 bg-white mt-2 mb-8"
+                        >
+                            Back
                         </Button>
                     </div>
                 </form>

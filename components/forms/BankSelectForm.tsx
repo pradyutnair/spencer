@@ -85,7 +85,7 @@ export default function SelectBankForm() {
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select your bank" />
                                 </SelectTrigger>
-                                <SelectContent className="shadow-lg border border-gray-200 rounded-md bg-white divide-y divide-gray-200 w-full
+                                <SelectContent className="shadow-lg border border-gray-200 rounded-md divide-y divide-gray-200 w-full
                                 overflow-y-auto p-2 max-h-72">
                                     {institutions.map((institution: any) => (
                                         <SelectItem value={institution.id} key={institution.id} className="py-2 px-4">
@@ -106,7 +106,7 @@ export default function SelectBankForm() {
                         {error && <div className="text-red-600 text-center">{error}</div>}
                         <Button
                             type="submit"
-                            className="w-full text-zinc-950  hover:bg-zinc-950 hover:text-white disabled:opacity-50 bg-white mt-6"
+                            className="w-full text-zinc-950  hover:bg-zinc-900 hover:text-white disabled:opacity-50 bg-white mt-6"
                             disabled={loading}
                         >
                             {loading ? (
@@ -117,6 +117,7 @@ export default function SelectBankForm() {
                         </Button>
                         {/*Create a button that redirects the user to the /select-country page*/}
                         <Button
+                          type="button" // Add this line
                           onClick={() => router.push('/select-country')}
                           className="w-full text-zinc-950 hover:text-red-500 hover:border-2 hover:bg-white disabled:opacity-50 bg-white mt-2 mb-8"
                         >

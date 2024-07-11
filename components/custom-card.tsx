@@ -10,20 +10,55 @@ import {
 } from '@/components/ui/card';
 import { useTransactionStore } from '@/components/stores/transaction-store';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
-import { Transaction } from '@/types/index';
-import { fetchExpenditure, fetchIncome } from '@/lib/analytics.actions';
+import { BankData, Transaction } from '@/types/index';
+import { fetchCurrentWeekExpenses, fetchExpenditure, fetchIncome } from '@/lib/analytics.actions';
 import {
   EuroIcon,
+  DollarSignIcon,
+  PoundSterling,
+  IndianRupeeIcon,
   SquarePlus,
-  Coins
+  Coins,
+  Split,
+  SquareArrowOutUpRight
 } from 'lucide-react';
 import { SkeletonCard } from '@/components/skeletons/card-skeleton';
-
+import TransactionChart from '@/components/transaction-chart';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { RecentExpensesTable } from '@/components/recent-expenses-table';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useCurrencyStore } from '@/components/stores/currency-store';
+import {ArcElement, Chart as ChartJS, Legend, Tooltip} from "chart.js";
+import { Doughnut } from 'react-chartjs-2';
+import { useBankStore } from '@/components/stores/bank-balances-store';
+import { ResponsiveContainer } from 'recharts';
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function CustomCard(firstname:string ): JSX.Element {
   const { transactions, loading, setTransactions, setLoading } = useTransactionStore();
   const {dateRange} = useDateRangeStore();
+  const {currency, setCurrency} = useCurrencyStore();
 
+  // Create a dictionary to map currency symbols to their respective icons
+  const currencyIconMap: { [key: string]: typeof Icon } = {
+    'EUR': EuroIcon,
+    'USD': DollarSignIcon,
+    'GBP': PoundSterling,
+    'INR': IndianRupeeIcon
+  };
+
+ // If the currency is not in the map, default to EuroIcon
+  let CurrencyIcon = currencyIconMap[currency] || EuroIcon; // Notice the capital 'C'
+  // Get the text symbol for the currency by using format
+  let currencySymbol = new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(0).replace(/\d/g, '');
+  // remove any whitespace or commas or periods
+  currencySymbol = currencySymbol.replace(/[\s,.$]/g, '');
+
+  const [showExpenses, setShowExpenses] = React.useState(true);
+
+  // Load transaction data
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
@@ -45,14 +80,55 @@ export default function CustomCard(firstname:string ): JSX.Element {
     fetchTransactions();
   }, [setLoading, setTransactions]);
 
-  console.log("Fetching transaction data from store", typeof transactions, transactions);
+
+  // Load bank data
+  const { bankData, bankDataLoading, setBankData, setBankDataLoading } = useBankStore();
+  useEffect(() => {
+    const fetchBalances = async () => {
+      try {
+        const response = await fetch("/api/getBalances");
+        const data: BankData[] = await response.json();
+        console.log('Bank data:', data);
+        setBankData(data);
+      } catch (error) {
+        console.error('Error fetching balances:', error);
+      } finally {
+        setBankDataLoading(false);
+      }
+    };
+    fetchBalances();
+  }, [setBankData, setBankDataLoading]);
+
+  const createAccountBalanceBreakdown = (bankData: BankData[], selectedCurrency: string) => {
+    // For each bank, sum the balances for the given selectedCurrency and return the list of bank names and total balances
+    const accountBalances = bankData.map(({ bankName, balances }) => {
+      const totalBalance = Object.values(balances).reduce((acc, { amount, currency }) => {
+        if (currency === selectedCurrency) {
+          return acc + parseFloat(amount);
+        }
+        return acc;
+      }, 0);
+
+      return { bankName, totalBalance };
+    });
+
+    return accountBalances;
+  }
+
+  const accountBalances = createAccountBalanceBreakdown(bankData, currency);
+  console.log('Account balances:', accountBalances);
+
+  //console.log("Fetching transaction data from store", typeof transactions, transactions);
   console.log("Fetching date range from store", dateRange);
 
   // Fetch the current expenditure and percentage difference
-  const {currentExpenditure, percentageDifference} = fetchExpenditure(transactions, dateRange);
+  const {currentExpenditure, percentageDifference} = fetchExpenditure(transactions, dateRange, currency);
 
   // Fetch the current income and percentage difference
-  const {currentIncome, incomePercentageDifference} = fetchIncome(transactions, dateRange);
+  const {currentIncome, incomePercentageDifference} = fetchIncome(transactions, dateRange, currency);
+
+  // Fetch  expense for current week
+  const currentWeekExpenditure = fetchCurrentWeekExpenses(transactions, currency);
 
   // Calculate net income
   let netIncome = currentIncome - -currentExpenditure;
@@ -61,13 +137,69 @@ export default function CustomCard(firstname:string ): JSX.Element {
   // Convert to string and add a + sign if positive or a - sign if negative
   const netIncomeString = (netIncome > 0 ? '+' : '') + netIncome;
 
+  // Add + or - sign to percentage difference
+  const percentageDifferenceString = (percentageDifference > 0 ? '+' : '') + percentageDifference;
+  const incomePercentageDifferenceString = (incomePercentageDifference > 0 ? '+' : '') + incomePercentageDifference;
+
+
+  // Define your data and options for the chart
+  // Function to generate gradient color
+  const generateColor = (index: number) => {
+  const hue = 180; // Hue for teal
+  const saturation = 100; // Full saturation
+  const lightness = 25 + (index % 50); // Adjust lightness for variety
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+};
+
+// Extract bank names and total balances from accountBalances
+  const labels = accountBalances.map(({ bankName }) => bankName);
+  const data = accountBalances.map(({ totalBalance }) => totalBalance);
+
+// Generate a color for each bank
+  const backgroundColor = labels.map((_, index) => generateColor(index));
+
+// Update the data for the doughnut chart
+  const doughnutData = {
+    labels: labels,
+    datasets: [
+      {
+        data: data,
+        backgroundColor: backgroundColor,
+        borderColor: '#ffffff', // Set the stroke color to white
+        borderWidth: 1,
+      },
+    ],
+  };
+
+// Update the options for the doughnut chart
+  const doughnutOptions = {
+    cutout: '80%', // This makes the chart a donut chart
+    plugins: {
+      legend: {
+        display: false
+      }
+    }
+  };
+
+
+
   if (loading) {
     return (
+      <div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
         <SkeletonCard />
+      </div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6 h-full">
+        <div className="col-span-4">
+        <SkeletonCard />
+        </div>
+        <div className="col-span-4 md:col-span-3">
+        <SkeletonCard />
+          </div>
+      </div>
       </div>
     )
   }
@@ -80,12 +212,13 @@ export default function CustomCard(firstname:string ): JSX.Element {
           <CardTitle className="text-sm font-medium">
             {'Expenditure'}
           </CardTitle>
-          <EuroIcon className="h-4 w-4 text-muted-foreground" />
+        {/*  Currency icon */}
+          <CurrencyIcon className="h-4 w-4 text-muted-foreground" /> {/* Use the capitalized variable here */}
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{currentExpenditure}</div>
           <p className="text-xs text-muted-foreground">
-            {percentageDifference}% from previous period
+            {percentageDifferenceString}% from previous period
           </p>
         </CardContent>
       </Card>
@@ -101,7 +234,7 @@ export default function CustomCard(firstname:string ): JSX.Element {
         <CardContent>
           <div className="text-2xl font-bold">+{currentIncome}</div>
           <p className="text-xs text-muted-foreground">
-            {incomePercentageDifference}% from previous period
+            {incomePercentageDifferenceString}% from previous period
           </p>
         </CardContent>
       </Card>
@@ -125,41 +258,73 @@ export default function CustomCard(firstname:string ): JSX.Element {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            {'title'}
+            {'Balance Breakdown'}
           </CardTitle>
-          <SquarePlus className="h-4 w-4 text-muted-foreground" />
+          <Split className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{currentIncome}</div>
-          <p className="text-xs text-muted-foreground">
-            {incomePercentageDifference}% from previous period
-          </p>
+          <div className="flex items-center justify-center px-16">
+            <ResponsiveContainer width="100%" height={60}>
+            <Doughnut data={doughnutData} options={doughnutOptions} />
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
     </div>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">
         <Card className="col-span-4">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Overview</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="transaction-type">{showExpenses ? "Expenses" : "Income"}</Label>
+                <Switch
+                  id="transaction-type"
+                  checked={showExpenses}
+                  onCheckedChange={() => setShowExpenses(!showExpenses)}
+                />
+              </div>
+            </div>
           </CardHeader>
+          <div className="-mt-5 px-6 mb-8">
+          <CardDescription>
+            You spent {currencySymbol}{currentWeekExpenditure} this week.
+          </CardDescription>
+          </div>
+
           <CardContent className="pl-2">
-            {/*<Overview />*/}
+          <TransactionChart transactions={transactions}
+                            dateRange={dateRange}
+                            showExpenses={showExpenses}
+                            setShowExpenses={setShowExpenses}
+                            currencyIcon={CurrencyIcon}
+          />
           </CardContent>
         </Card>
         <Card className="col-span-4 md:col-span-3">
           <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-            <CardDescription>
-              You made 265 sales this month.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <CardTitle>Recent Transactions</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Link href={'/transaction-history'}>
+                <SquareArrowOutUpRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </div>
+            </div>
           </CardHeader>
+          <div className="-mt-5 px-6 mb-8">
+            <CardDescription>
+
+            </CardDescription>
+          </div>
           <CardContent>
-            {/*<RecentSales />*/}
+            <RecentExpensesTable transactions={transactions} />
           </CardContent>
         </Card>
       </div>
+
     </div>
 
-)
-  ;
+  )
+    ;
 };

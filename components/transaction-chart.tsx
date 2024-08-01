@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import {
   BarChart,
   Bar,
+  CartesianGrid,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Tooltip,
-  TooltipProps
+  TooltipProps,
+  CartesianAxis
 } from 'recharts';
 import { startOfMonth } from 'date-fns';
 import { Transaction } from '@/types/index';
@@ -124,6 +126,11 @@ const TransactionChart: React.FC<TransactionChartProps> = ({
       {/*</div>*/}
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>
+          <CartesianGrid
+            vertical={false}
+            stroke="#202020"
+            strokeDasharray="2"
+          />
           <XAxis
             dataKey="bookingDate"
             stroke="#888888"

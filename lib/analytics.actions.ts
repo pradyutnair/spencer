@@ -1,7 +1,17 @@
 'use client';
 import { useTransactionStore } from '@/components/stores/transaction-store';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
-import { startOfMonth, endOfMonth, subMonths, startOfWeek, endOfWeek, subWeeks, subYears, startOfYear, endOfYear } from 'date-fns';
+import {
+  startOfMonth,
+  endOfMonth,
+  subMonths,
+  startOfWeek,
+  endOfWeek,
+  subWeeks,
+  subYears,
+  startOfYear,
+  endOfYear
+} from 'date-fns';
 import { Transaction } from '@/types/index';
 import { DateRange } from 'react-day-picker';
 
@@ -37,20 +47,26 @@ import { DateRange } from 'react-day-picker';
 //   }
 // }
 
-function calculatePreviousPeriod(from: Date, to: Date): { previousStart: Date, previousEnd: Date } {
+function calculatePreviousPeriod(
+  from: Date,
+  to: Date
+): { previousStart: Date; previousEnd: Date } {
   const daysDiff = (to.getTime() - from.getTime()) / (1000 * 3600 * 24);
 
-  if (daysDiff <= 7) { // Weekly
+  if (daysDiff <= 7) {
+    // Weekly
     return {
       previousStart: subWeeks(from, 1),
       previousEnd: subWeeks(to, 1)
     };
-  } else if (daysDiff <= 31) { // Monthly
+  } else if (daysDiff <= 31) {
+    // Monthly
     return {
       previousStart: subMonths(from, 1),
       previousEnd: subMonths(to, 1)
     };
-  } else { // Yearly or Custom period
+  } else {
+    // Yearly or Custom period
     return {
       previousStart: subYears(from, 1),
       previousEnd: subYears(to, 1)
@@ -58,40 +74,71 @@ function calculatePreviousPeriod(from: Date, to: Date): { previousStart: Date, p
   }
 }
 
-export function fetchExpenditure(transactions: any, dateRange: any, currency: string) {
+export function fetchExpenditure(
+  transactions: any,
+  dateRange: any,
+  currency: string
+) {
   // Determine the date range, defaulting to the start of the month to today
   const from = dateRange?.from || startOfMonth(new Date());
   const to = dateRange?.to || new Date();
 
   // Calculate the previous period based on the current date range
   const { previousStart, previousEnd } = calculatePreviousPeriod(from, to);
-  console.log("Previous period", previousStart, previousEnd);
+  console.log('Previous period', previousStart, previousEnd);
 
   // Filter transactions to only include those that have EUR currency
-  transactions = transactions.filter((transaction: { currency: string; }) => transaction.currency === currency);
+  transactions = transactions.filter(
+    (transaction: { currency: string }) => transaction.currency === currency
+  );
 
   // Calculate the total expenditure within the current date range
-  let currentExpenditure = transactions.reduce((total: any, transaction: { bookingDate: string | number | Date; amount: number; }) => {
-    const transactionDate = new Date(transaction.bookingDate);
-    if (transactionDate >= from && transactionDate <= to && transaction.amount < 0) {
-      total += transaction.amount;
-    }
-    return total;
-  }, 0);
+  let currentExpenditure = transactions.reduce(
+    (
+      total: any,
+      transaction: { bookingDate: string | number | Date; amount: number }
+    ) => {
+      const transactionDate = new Date(transaction.bookingDate);
+      if (
+        transactionDate >= from &&
+        transactionDate <= to &&
+        transaction.amount < 0
+      ) {
+        total += transaction.amount;
+      }
+      return total;
+    },
+    0
+  );
 
   // Calculate the total expenditure for the previous period
-  let previousExpenditure = transactions.reduce((total: any, transaction: { bookingDate: string | number | Date; amount: number; }) => {
-    const transactionDate = new Date(transaction.bookingDate);
-    if (transactionDate >= previousStart && transactionDate <= previousEnd && transaction.amount < 0) {
-      total += transaction.amount;
-    }
-    return total;
-  }, 0);
+  let previousExpenditure = transactions.reduce(
+    (
+      total: any,
+      transaction: { bookingDate: string | number | Date; amount: number }
+    ) => {
+      const transactionDate = new Date(transaction.bookingDate);
+      if (
+        transactionDate >= previousStart &&
+        transactionDate <= previousEnd &&
+        transaction.amount < 0
+      ) {
+        total += transaction.amount;
+      }
+      return total;
+    },
+    0
+  );
 
   // Calculate the percentage difference between current and previous expenditures
-  let percentageDifference = previousExpenditure !== 0
-    ? ((Math.abs(currentExpenditure) - Math.abs(previousExpenditure)) / Math.abs(previousExpenditure)) * 100
-    : currentExpenditure > 0 ? 100 : 0;
+  let percentageDifference =
+    previousExpenditure !== 0
+      ? ((Math.abs(currentExpenditure) - Math.abs(previousExpenditure)) /
+          Math.abs(previousExpenditure)) *
+        100
+      : currentExpenditure > 0
+      ? 100
+      : 0;
 
   currentExpenditure = Number(currentExpenditure.toFixed(2));
 
@@ -103,7 +150,11 @@ export function fetchExpenditure(transactions: any, dateRange: any, currency: st
   };
 }
 
-export function fetchIncome(transactions: any, dateRange: any, currency: string){
+export function fetchIncome(
+  transactions: any,
+  dateRange: any,
+  currency: string
+) {
   // Determine the date range, defaulting to the start of the month to today
   const from = dateRange?.from || startOfMonth(new Date());
   const to = dateRange?.to || new Date();
@@ -111,30 +162,55 @@ export function fetchIncome(transactions: any, dateRange: any, currency: string)
   // Calculate the previous period based on the current date range
   const { previousStart, previousEnd } = calculatePreviousPeriod(from, to);
 
-  transactions = transactions.filter((transaction: { currency: string; }) => transaction.currency === currency);
+  transactions = transactions.filter(
+    (transaction: { currency: string }) => transaction.currency === currency
+  );
 
   // Calculate the total income within the current date range
-  let currentIncome = transactions.reduce((total: any, transaction: { bookingDate: string | number | Date; amount: number; }) => {
-    const transactionDate = new Date(transaction.bookingDate);
-    if (transactionDate >= from && transactionDate <= to && transaction.amount > 0) {
-      total += transaction.amount;
-    }
-    return total;
-  }, 0);
+  let currentIncome = transactions.reduce(
+    (
+      total: any,
+      transaction: { bookingDate: string | number | Date; amount: number }
+    ) => {
+      const transactionDate = new Date(transaction.bookingDate);
+      if (
+        transactionDate >= from &&
+        transactionDate <= to &&
+        transaction.amount > 0
+      ) {
+        total += transaction.amount;
+      }
+      return total;
+    },
+    0
+  );
 
   // Calculate the total income for the previous period
-  let previousIncome = transactions.reduce((total: any, transaction: { bookingDate: string | number | Date; amount: number; }) => {
-    const transactionDate = new Date(transaction.bookingDate);
-    if (transactionDate >= previousStart && transactionDate <= previousEnd && transaction.amount > 0) {
-      total += transaction.amount;
-    }
-    return total;
-  }, 0);
+  let previousIncome = transactions.reduce(
+    (
+      total: any,
+      transaction: { bookingDate: string | number | Date; amount: number }
+    ) => {
+      const transactionDate = new Date(transaction.bookingDate);
+      if (
+        transactionDate >= previousStart &&
+        transactionDate <= previousEnd &&
+        transaction.amount > 0
+      ) {
+        total += transaction.amount;
+      }
+      return total;
+    },
+    0
+  );
 
   // Calculate the percentage difference between current and previous incomes
-  let incomePercentageDifference = previousIncome !== 0
-    ? ((currentIncome - previousIncome) / Math.abs(previousIncome)) * 100
-    : currentIncome > 0 ? 100 : 0;
+  let incomePercentageDifference =
+    previousIncome !== 0
+      ? ((currentIncome - previousIncome) / Math.abs(previousIncome)) * 100
+      : currentIncome > 0
+      ? 100
+      : 0;
 
   currentIncome = Number(currentIncome.toFixed(2));
   incomePercentageDifference = Number(incomePercentageDifference.toFixed(2));
@@ -143,22 +219,33 @@ export function fetchIncome(transactions: any, dateRange: any, currency: string)
     currentIncome,
     incomePercentageDifference
   };
-
 }
 
-export function fetchCurrentWeekExpenses(transactions:any, currency: string){
+export function fetchCurrentWeekExpenses(transactions: any, currency: string) {
   const from = startOfWeek(new Date());
   const to = endOfWeek(new Date());
 
-  transactions = transactions.filter((transaction: { currency: string; }) => transaction.currency === currency);
+  transactions = transactions.filter(
+    (transaction: { currency: string }) => transaction.currency === currency
+  );
 
-  let currentExpenditure = transactions.reduce((total: any, transaction: { bookingDate: string | number | Date; amount: number; }) => {
-    const transactionDate = new Date(transaction.bookingDate);
-    if (transactionDate >= from && transactionDate <= to && transaction.amount < 0) {
-      total += transaction.amount;
-    }
-    return total;
-  }, 0);
+  let currentExpenditure = transactions.reduce(
+    (
+      total: any,
+      transaction: { bookingDate: string | number | Date; amount: number }
+    ) => {
+      const transactionDate = new Date(transaction.bookingDate);
+      if (
+        transactionDate >= from &&
+        transactionDate <= to &&
+        transaction.amount < 0
+      ) {
+        total += transaction.amount;
+      }
+      return total;
+    },
+    0
+  );
 
   currentExpenditure = Number(currentExpenditure.toFixed(2));
   currentExpenditure = Math.abs(currentExpenditure);

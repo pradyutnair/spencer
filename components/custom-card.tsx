@@ -39,6 +39,7 @@ import { ArcElement, Chart as ChartJS, Legend, Tooltip } from 'chart.js';
 import { Doughnut } from 'react-chartjs-2';
 import { useBankStore } from '@/components/stores/bank-balances-store';
 import { ResponsiveContainer } from 'recharts';
+import DoughnutChartCard from '@/components/balance-pie-chart';
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function CustomCard(firstname: string): JSX.Element {
@@ -334,8 +335,8 @@ export default function CustomCard(firstname: string): JSX.Element {
           </CardContent>
         </Card>
       </div>
-      <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 md:col-span-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
+        <Card className="col-span-1">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Recent Transactions</CardTitle>
@@ -351,6 +352,21 @@ export default function CustomCard(firstname: string): JSX.Element {
           </div>
           <CardContent>
             <RecentExpensesTable transactions={transactions} />
+          </CardContent>
+        </Card>
+        <Card className="col-span-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Balance Breakdown</CardTitle>
+            </div>
+          </CardHeader>
+          <div className="-mt-5 mb-8 px-6">
+            <CardDescription></CardDescription>
+          </div>
+          <CardContent>
+            <div className="flex items-center justify-center">
+            <DoughnutChartCard accountBalances={accountBalances} currency={currency} />
+            </div>
           </CardContent>
         </Card>
       </div>

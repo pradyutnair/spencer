@@ -36,6 +36,8 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
         Day: transaction.Day,
         DayOfWeek: transaction.DayOfWeek,
         Description: transaction.Description,
+        category: transaction.category,
+        exclude: false, // Default value for exclude
       }
     );
 
@@ -44,6 +46,7 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
   }
 }
 
+// This function will pull only non-excluded transactions from the database
 export async function pullTransactionsDB(requisitionId: string) {
   const { database } = await createAdminClient();
 
@@ -54,10 +57,12 @@ export async function pullTransactionsDB(requisitionId: string) {
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
         Query.contains('requisitionId', requisitionId),
-        // Get the latest transactions first
         Query.orderDesc('bookingDateTime'),
-        // Limit the number of transactions to 1000
-        Query.limit(1000)
+        Query.or([
+          Query.equal('exclude', false),
+          Query.isNull('exclude')
+        ]),
+        Query.limit(5000000), // Adjust this number based on your needs
       ]
     );
 
@@ -70,5 +75,57 @@ export async function pullTransactionsDB(requisitionId: string) {
   } catch (error) {
     console.error('Error fetching transactions from Appwrite DB:', error);
     return [];
+  }
+}
+
+// This function will pull all transactions from the database
+export async function pullAllTransactionsDB(requisitionId: string) {
+  const { database } = await createAdminClient();
+
+  try {
+    // Fetch all transactions with the provided requisition ID
+    const transactions = await database.listDocuments(
+      APPWRITE_DATABASE_ID!,
+      APPWRITE_TRANSACTION_COLLECTION_ID!,
+      [
+        Query.contains('requisitionId', requisitionId),
+        Query.orderDesc('bookingDateTime'),
+        Query.limit(5000000), // Adjust this number based on your needs
+      ]
+    );
+
+    // Log
+    console.log('Transactions successfully fetched from Appwrite DB for requisition ID:', transactions.documents.length);
+
+    return transactions.documents;
+
+
+  } catch (error) {
+    console.error('Error fetching transactions from Appwrite DB:', error);
+    return [];
+  }
+}
+
+export async function updateTransactionExclusion(transactionId: string, exclude: boolean) {
+  const { database } = await createAdminClient();
+
+  try {
+    // Update the document in the transactions collection
+    const updatedExclusion = await database.updateDocument(
+      APPWRITE_DATABASE_ID!,
+      APPWRITE_TRANSACTION_COLLECTION_ID!,
+      transactionId,
+      {
+        exclude: exclude,
+      }
+    );
+
+    console.log('Transaction exclusion updated successfully in Appwrite DB:', updatedExclusion);
+
+    return updatedExclusion
+
+  } catch (error) {
+    console.error('Error updating transaction exclusion in Appwrite DB:', error);
+    return null;
   }
 }

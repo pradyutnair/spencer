@@ -415,6 +415,7 @@ export type Transaction = {
   Payee: string;
   Bank?: string;
   category?: string;
+  exclude?: boolean;
 };
 
 export type TransactionsResponse = {

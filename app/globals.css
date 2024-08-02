@@ -90,4 +90,11 @@
   .bank-card_icon {
     @apply flex size-full flex-1 flex-col items-end justify-between rounded-r-[20px] bg-cover bg-center bg-no-repeat py-5 pr-5;
   }
+
+  /* Row height for table */
+  .fixed-row-height {
+    height: 50px; /* Set a fixed height for table rows */
+    overflow: hidden; /* Hide overflow content */
+  }
 }
+

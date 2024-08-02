@@ -113,7 +113,6 @@ export const getBankData = async (): Promise<BankData[]> => {
 };
 
 // Retrieve transactions for a given array of requisitionIds from GC
-// Retrieve transactions for a given array of requisitionIds from GC
 export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, dateTo }: { requisitionIds: string[], bankNames?: string[], dateFrom?: string, dateTo?: string }): Promise<Transaction[]> => {
     const client = await createGoCardlessClient();
     let allTransactions: Transaction[] = [];
@@ -146,6 +145,8 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
             const accountTransactions = await Promise.all(accountTransactionsPromises);
             const flattenedTransactions = accountTransactions.flat();
             const correctedTransactions = await applyDataCorrections(flattenedTransactions, bankName);
+
+            console.log(`Corrected transactions for requisition ID ${requisitionId}:`, correctedTransactions);
 
             allTransactions.push(...correctedTransactions);
 
@@ -197,25 +198,24 @@ const checkLatestTransaction = async (requisitionId: string): Promise<string> =>
 
 const applyDataCorrections = async (transactions: Transaction[], bankName?: string): Promise<Transaction[]> => {
     console.log(`Applying data corrections to ${transactions.length} transactions for ${bankName}`);
-    // Check if the transactions array contains data
+
     if (!Array.isArray(transactions) || transactions.length === 0) {
         throw new Error("transactions must be a non-empty array");
     }
 
-    // Check if required fields exist
     transactions.forEach(transaction => {
         if (!transaction.transactionAmount || !transaction.bookingDate) {
             throw new Error("transactionAmount and bookingDate are required fields");
         }
     });
 
-    // Predefine the words to match and remove
     const wordsToRemove = [
         "Savings vault", "Flexible profile", "Vault", "To EUR", "To USD", "Exchanged",
         "Weekly Rule", "Monthly Rule", "From Main", "To Main", "From Personal", "To Personal",
-        "Balance migration", "EUR Subscriptions", "Savings", "To EUR Subscriptions", "Savings", "Flexible Cash"
+        "Balance migration", "EUR Subscriptions", "Savings", "To EUR Subscriptions", "Savings", "Flexible Cash",
     ];
-    const wordsToRemoveStr = new RegExp(wordsToRemove.join('|'), 'i'); // Case-insensitive matching
+
+    const wordsToRemoveStr = new RegExp(wordsToRemove.join('|'), 'i');
 
     const correctedTransactions: Transaction[] = [];
 
@@ -230,62 +230,51 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
             remittanceInformationUnstructuredArray
         } = transaction;
 
-        // Extract amount and currency
         const amount = parseFloat(transactionAmount.amount);
         const currency = transactionAmount.currency;
 
-        // Convert bookingDate to Date object and extract date parts
-        // Convert bookingDate to Date object and extract date parts
-        let bookingDateObj;
-        bookingDateObj = dayjs(bookingDate);
+        let bookingDateObj = dayjs(bookingDate);
         dayjs.extend(require('dayjs/plugin/weekOfYear'));
         const year = bookingDateObj.year();
-        const month = bookingDateObj.month() + 1; // month() is 0-indexed in dayjs
-        const week = bookingDateObj.week(); // Use  week()
+        const month = bookingDateObj.month() + 1;
+        const week = bookingDateObj.week();
         const day = bookingDateObj.date();
         const dayOfWeek = bookingDateObj.day();
 
-
-        // Determine the first and second columns for payee information
         const firstColumn = creditorName ?? debtorName ?? '';
         const secondColumn = creditorAccount ?? debtorAccount ?? '';
         const remittanceInfo = remittanceInformationUnstructuredArray?.join(' ') ?? '';
 
-        // Coalesce creditorName and creditorAccount
         let payee = firstColumn || secondColumn || remittanceInfo;
         if (!payee) {
             payee = "Unknown";
         }
         if (typeof payee === 'object') {
-            // Get the string representation of the object
             payee = JSON.stringify(payee);
-
         }
         payee = payee.replace(/\s+/g, ' ').trim();
-        // Remove special characters
-        payee = payee.replace(/[^a-zA-Z0-9 ]/g, ' ');
 
-        // Logic for categorizing transactions
-        let category = await getCategory(payee);
-        console.log(`Category for ${payee}: ${category}`)
+        // Remove special characters and numbers
+        payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
 
+        // Capitalize the first letter of every word
+        payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
 
-        // Check words to remove in all three columns
+        let category = await getCategory(payee); // Ensure this line waits for the result
+        console.log(`Category for ${payee}: ${category}`);
+
         const containsWordsToRemove = wordsToRemoveStr.test(payee);
         const containsWordsToRemoveFirstColumn = wordsToRemoveStr.test(firstColumn);
         const containsWordsToRemoveRemittanceInfo = wordsToRemoveStr.test(remittanceInfo);
 
         if (!bankName) {
-            bankName = "YourBankName"; // Replace with the actual bank name or a dynamic value
+            bankName = "YourBankName";
         } else {
-            // Apply data corrections by removing underscores and hyphens
             bankName = bankName.replace(/_/g, ' ').replace(/-/g, ' ');
-            // Split the bank name and only use the first word
             bankName = bankName.split(' ')[0];
         }
 
         if (!containsWordsToRemove && !containsWordsToRemoveFirstColumn && !containsWordsToRemoveRemittanceInfo) {
-            // Create a new transaction object with the corrected data
             const correctedTransaction: Transaction = {
                 ...transaction,
                 amount: amount,
@@ -305,19 +294,17 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
         }
     }
 
-    // Sort the transactions by booking date in descending order
     correctedTransactions.sort((a, b) => dayjs(b.bookingDate).unix() - dayjs(a.bookingDate).unix());
-
-    // Console log all the columns for the first transaction
-    // eslint-disable-next-line no-console
-    //console.log("First transaction after data corrections", correctedTransactions[0]);
 
     return correctedTransactions;
 };
 
+
+
 // Wrap your code in an async function
 const getCategory = async (payee: string): Promise<string> => {
     const category_url = 'https://appwrite-render.onrender.com/predict';
+
     try {
         const response = await fetch(category_url, {
             method: 'POST',
@@ -328,12 +315,13 @@ const getCategory = async (payee: string): Promise<string> => {
                 Payee: payee,
             })
         });
+
         const data = await response.json();
         return data.category;
     } catch (error) {
-        console.error('Error getting category:', error);
         return "Uncategorized";
     }
+
 };
 
 export const createAccountBalanceBreakdown = async (bankData: BankData[], currency: string) => {

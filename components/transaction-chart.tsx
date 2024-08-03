@@ -33,7 +33,7 @@ const TransactionChart: React.FC<TransactionChartProps> = ({
   showExpenses,
   setShowExpenses
 }) => {
-  const { currency, setCurrency } = useCurrencyStore();
+  const { currency } = useCurrencyStore();
   // Get the text symbol for the currency by using format
   let currencySymbol = new Intl.NumberFormat('en-US', {
     style: 'currency',

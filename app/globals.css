@@ -96,5 +96,15 @@
     height: 50px; /* Set a fixed height for table rows */
     overflow: hidden; /* Hide overflow content */
   }
+
+  /* Add this CSS to your stylesheet */
+  .category-item {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #d1d5db; /* Muted color */
+    border-radius: 9999px; /* Circular rectangular border */
+    background-color: #f3f4f6; /* Muted background color */
+    color: #374151; /* Muted text color */
+  }
 }
 

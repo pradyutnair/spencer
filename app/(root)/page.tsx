@@ -22,15 +22,7 @@ export default async function page() {
             <SelectCurrency />
           </div>
         </div>
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-4">
             <CustomCard firstname={firstname} />
-          </TabsContent>
-        </Tabs>
       </div>
     </ScrollArea>
   );

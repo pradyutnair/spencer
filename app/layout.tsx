@@ -6,6 +6,7 @@ import React from 'react';
 
 const inter = Inter({subsets: ["latin"], variable: '--font-inter'});
 const ibmPlexSerif = IBM_Plex_Serif({subsets: ["latin"], weight: ["400", "700"], variable: '--font-ibm-plex-serif'});
+const ibmPlexMono = IBM_Plex_Serif({subsets: ["latin"], weight: ["400", "700"], variable: '--font-ibm-plex-mono'});
 
 export const metadata: Metadata = {
   title: "Compass",

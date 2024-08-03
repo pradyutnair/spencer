@@ -22,15 +22,15 @@ export function RecentExpensesTable({ transactions }: RecentSalesProps) {
     transaction.currency === currency);
 
   // Take the 5 most recent ones
-  recentTransactions = recentTransactions.slice(0, 5);
+  recentTransactions = recentTransactions.slice(0, 7);
 
   return (
     <div className="space-y-4">
       {recentTransactions.map((transaction, index) => (
         <div className="flex items-center" key={index}>
-          <Avatar className="h-9 w-9">
-            <AvatarFallback>{generateAvatarInitials(transaction.Payee)}</AvatarFallback>
-          </Avatar>
+          {/*<Avatar className="h-9 w-9">*/}
+          {/*  <AvatarFallback>{generateAvatarInitials(transaction.Payee)}</AvatarFallback>*/}
+          {/*</Avatar>*/}
           <div className="ml-4 space-y-1">
             <p className="text-sm font-medium leading-none">{transaction.Payee}</p>
           </div>

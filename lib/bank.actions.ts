@@ -249,16 +249,18 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
         if (!payee) {
             payee = "Unknown";
         }
-        if (typeof payee === 'object') {
-            payee = JSON.stringify(payee);
+
+        if (typeof payee === 'string') {
+            // Remove extra spaces
+            payee = payee.replace(/\s+/g, ' ').trim();
+            // Remove special characters and numbers
+            payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
+
+            // Capitalize the first letter of every word
+            payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
+        } else {
+            continue
         }
-        payee = payee.replace(/\s+/g, ' ').trim();
-
-        // Remove special characters and numbers
-        payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
-
-        // Capitalize the first letter of every word
-        payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
 
         let category = await getCategory(payee); // Ensure this line waits for the result
         console.log(`Category for ${payee}: ${category}`);

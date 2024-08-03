@@ -1,45 +1,25 @@
+// components/custom-card.tsx
 'use client';
 import React, { useEffect } from 'react';
-
-import { Icon } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Coins, SquareArrowOutUpRight, SquarePlus } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactionStore } from '@/components/stores/transaction-store';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
 import { BankData, Transaction } from '@/types/index';
-import {
-  fetchCurrentWeekExpenses,
-  fetchExpenditure,
-  fetchIncome
-} from '@/lib/analytics.actions';
-import {
-  EuroIcon,
-  DollarSignIcon,
-  PoundSterling,
-  IndianRupeeIcon,
-  SquarePlus,
-  Coins,
-  Split,
-  SquareArrowOutUpRight
-} from 'lucide-react';
+import { fetchCurrentWeekExpenses, fetchExpenditure, fetchIncome } from '@/lib/analytics.actions';
 import { SkeletonCard } from '@/components/skeletons/card-skeleton';
 import TransactionChart from '@/components/transaction-chart';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RecentExpensesTable } from '@/components/recent-expenses-table';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useCurrencyStore } from '@/components/stores/currency-store';
 import { ArcElement, Chart as ChartJS, Legend, Tooltip } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
 import { useBankStore } from '@/components/stores/bank-balances-store';
-import { ResponsiveContainer } from 'recharts';
 import DoughnutChartCard from '@/components/balance-pie-chart';
+import ChatComponent from '@/components/chat/chat-ui';
+import { getCurrencyIcon, getCurrencySymbol } from '@/lib/currency-mapping';
+
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function CustomCard(firstname: string): JSX.Element {
@@ -48,25 +28,9 @@ export default function CustomCard(firstname: string): JSX.Element {
   const { dateRange } = useDateRangeStore();
   const { currency, setCurrency } = useCurrencyStore();
 
-  // Create a dictionary to map currency symbols to their respective icons
-  const currencyIconMap: { [key: string]: typeof Icon } = {
-    EUR: EuroIcon,
-    USD: DollarSignIcon,
-    GBP: PoundSterling,
-    INR: IndianRupeeIcon
-  };
-
-  // If the currency is not in the map, default to EuroIcon
-  let CurrencyIcon = currencyIconMap[currency] || EuroIcon; // Notice the capital 'C'
-  // Get the text symbol for the currency by using format
-  let currencySymbol = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency
-  })
-    .format(0)
-    .replace(/\d/g, '');
-  // remove any whitespace or commas or periods
-  currencySymbol = currencySymbol.replace(/[\s,.$]/g, '');
+  // Get the currency icon and symbol dynamically
+  const CurrencyIcon = getCurrencyIcon(currency);
+  const currencySymbol = getCurrencySymbol(currency);
 
   const [showExpenses, setShowExpenses] = React.useState(true);
 
@@ -97,7 +61,7 @@ export default function CustomCard(firstname: string): JSX.Element {
   }, [setLoading, setTransactions]);
 
   // Load bank data
-  const { bankData, bankDataLoading, setBankData, setBankDataLoading } =
+  const { bankData, setBankData, setBankDataLoading } =
     useBankStore();
   useEffect(() => {
     const fetchBalances = async () => {
@@ -120,7 +84,7 @@ export default function CustomCard(firstname: string): JSX.Element {
     selectedCurrency: string
   ) => {
     // For each bank, sum the balances for the given selectedCurrency and return the list of bank names and total balances
-    const accountBalances = bankData.map(({ bankName, balances }) => {
+    return bankData.map(({ bankName, balances }) => {
       const totalBalance = Object.values(balances).reduce(
         (acc, { amount, currency }) => {
           if (currency === selectedCurrency) {
@@ -133,8 +97,6 @@ export default function CustomCard(firstname: string): JSX.Element {
 
       return { bankName, totalBalance };
     });
-
-    return accountBalances;
   };
 
   const accountBalances = createAccountBalanceBreakdown(bankData, currency);
@@ -266,12 +228,11 @@ export default function CustomCard(firstname: string): JSX.Element {
               dateRange={dateRange}
               showExpenses={showExpenses}
               setShowExpenses={setShowExpenses}
-              currencyIcon={CurrencyIcon}
             />
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/*EXPENDITURE CARD*/}
         <Card className="bg-zinc-100  from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -279,7 +240,10 @@ export default function CustomCard(firstname: string): JSX.Element {
               {'Expenditure'}
             </CardTitle>
             {/*  Currency icon */}
-            <CurrencyIcon className="h-4 w-4 text-muted-foreground" />{' '}
+            {/*<CurrencyIcon className="h-4 w-4 text-muted-foreground" />{' '}*/}
+            <p className={"h-5 w-4 text-muted-foreground"} style={{ fontSize: '1.1rem', position: 'relative', top: '-4px' }}>
+            {currencySymbol}
+          </p>
             {/* Use the capitalized variable here */}
           </CardHeader>
           <CardContent>
@@ -319,23 +283,41 @@ export default function CustomCard(firstname: string): JSX.Element {
         </Card>
 
         {/*BALANCE BREAKDOWN CARD*/}
-        <Card className="bg-zinc-100 dark:bg-zinc-950">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {'Balance Breakdown'}
-            </CardTitle>
-            <Split className="h-4 w-4 text-muted-foreground" />
+        {/*<Card className="bg-zinc-100 dark:bg-zinc-950">*/}
+        {/*  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">*/}
+        {/*    <CardTitle className="text-sm font-medium">*/}
+        {/*      {'Balance Breakdown'}*/}
+        {/*    </CardTitle>*/}
+        {/*    <Split className="h-4 w-4 text-muted-foreground" />*/}
+        {/*  </CardHeader>*/}
+        {/*  <CardContent>*/}
+        {/*    <div className="flex items-center justify-center px-16">*/}
+        {/*      <ResponsiveContainer width="100%" height={60}>*/}
+        {/*        <Doughnut data={doughnutData} options={doughnutOptions} />*/}
+        {/*      </ResponsiveContainer>*/}
+        {/*    </div>*/}
+        {/*  </CardContent>*/}
+        {/*</Card>*/}
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3">
+        <ChatComponent />
+
+        <Card className="col-span-1">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Balance Breakdown</CardTitle>
+            </div>
           </CardHeader>
+          <div className="-mt-5 mb-8 px-6">
+            <CardDescription></CardDescription>
+          </div>
           <CardContent>
-            <div className="flex items-center justify-center px-16">
-              <ResponsiveContainer width="100%" height={60}>
-                <Doughnut data={doughnutData} options={doughnutOptions} />
-              </ResponsiveContainer>
+            <div className="flex items-center justify-center">
+            <DoughnutChartCard accountBalances={accountBalances} currency={currency} />
             </div>
           </CardContent>
         </Card>
-      </div>
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
+
         <Card className="col-span-1">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -354,21 +336,7 @@ export default function CustomCard(firstname: string): JSX.Element {
             <RecentExpensesTable transactions={transactions} />
           </CardContent>
         </Card>
-        <Card className="col-span-1">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Balance Breakdown</CardTitle>
-            </div>
-          </CardHeader>
-          <div className="-mt-5 mb-8 px-6">
-            <CardDescription></CardDescription>
-          </div>
-          <CardContent>
-            <div className="flex items-center justify-center">
-            <DoughnutChartCard accountBalances={accountBalances} currency={currency} />
-            </div>
-          </CardContent>
-        </Card>
+
       </div>
     </div>
   );

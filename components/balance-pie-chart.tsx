@@ -19,7 +19,7 @@ const generateColor = (index: number) => {
 
 // Helper function to process bank name
 const processBankName = (bankName: string) => {
-  const name = bankName.split(/[^a-zA-Z]/)[0].toLowerCase();
+  const name = bankName.split(/[^a-zA-Z0-9 ]/g)[0].toLowerCase();
   return name.charAt(0).toUpperCase() + name.slice(1);
 };
 

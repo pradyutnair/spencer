@@ -106,5 +106,15 @@
     background-color: #f3f4f6; /* Muted background color */
     color: #374151; /* Muted text color */
   }
+
+  /* Add this CSS to your stylesheet */
+  .font-plex-mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Add this CSS to your stylesheet */
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
 }
 

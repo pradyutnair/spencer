@@ -377,6 +377,7 @@ export interface BankData {
   bankName: string;
   bankLogo: string;
   balances: Record<string, Balance>;
+  reqCreated: string;
 }
 
 export interface Balance {

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -32,7 +32,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Transaction } from "@/types";
-import { formatAmount } from "@/lib/utils";
+import { cn, formatAmount } from '@/lib/utils';
 import dayjs from "dayjs";
 import { SkeletonTable } from '@/components/skeletons/table-skeleton';
 import { useTransactionTableStore } from '@/components/stores/transaction-table-store';
@@ -43,6 +43,51 @@ const categories = [
     "Groceries", "Restaurant", "Travel", "Entertainment", "Health",
     "Subscriptions", "Shopping", "Transfers", "Income", "Finance", "Other"
 ];
+
+// Function to generate a unique color from a string
+const stringToColor = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = `hsl(${hash % 360}, 70%, 50%)`;
+    return color;
+};
+
+// Function to extract the main color from an image
+const getMainColor = async (imageUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0, img.width, img.height);
+
+            const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height).data;
+            if (!imageData) {
+                reject('Failed to get image data');
+                return;
+            }
+
+            let r = 0, g = 0, b = 0;
+            for (let i = 0; i < imageData.length; i += 4) {
+                r += imageData[i];
+                g += imageData[i+1];
+                b += imageData[i+2];
+            }
+            r = Math.floor(r / (imageData.length / 4));
+            g = Math.floor(g / (imageData.length / 4));
+            b = Math.floor(b / (imageData.length / 4));
+
+            resolve(`rgb(${r},${g},${b})`);
+        };
+        img.onerror = reject;
+        img.src = imageUrl;
+    });
+};
 
 export const columns: ColumnDef<Transaction>[] = [
     {
@@ -160,24 +205,100 @@ export const columns: ColumnDef<Transaction>[] = [
     {
         accessorKey: "Bank",
         id: "Bank",
-        header: ({ column }) => (
-            <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                className="text-left px--5"
-            >
-                Bank
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </Button>
-        ),
+        header: ({ column }) => {
+            const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
+            return (
+              <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="text-left px--5"
+                      >
+                          Bank
+                          <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                      {Array.from(column.getFacetedUniqueValues()).map(([value]) => (
+                        <DropdownMenuCheckboxItem
+                          key={value as string}
+                          checked={selectedBanks.includes(value as string)}
+                          onCheckedChange={(checked) => {
+                              let updatedBanks: string[];
+                              if (checked) {
+                                  updatedBanks = [...selectedBanks, value as string];
+                              } else {
+                                  updatedBanks = selectedBanks.filter(bank => bank !== value);
+                              }
+                              setSelectedBanks(updatedBanks);
+                              column.setFilterValue(updatedBanks.length ? updatedBanks : undefined);
+                          }}
+                        >
+                            {value as string}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                  </DropdownMenuContent>
+              </DropdownMenu>
+            );
+        },
         cell: ({ row }) => {
             const bankName = row.getValue("Bank") as string;
             const formattedBankName = bankName
-                .toLowerCase()
-                .replace(/\b\w/g, (char: string) => char.toUpperCase());
-            return <div>{formattedBankName}</div>;
+              .toLowerCase()
+              .replace(/\b\w/g, (char: string) => char.toUpperCase());
+            const bankLogo = row.original.bankLogo as string;
+            const [color, setColor] = useState<string | null>(null);
+
+            useEffect(() => {
+                getMainColor(bankLogo)
+                  .then(setColor)
+                  .catch(console.error);
+            }, [bankLogo]);
+
+            return (
+              <div className="relative group">
+                  <div
+                    className={cn(
+                      'flex items-center justify-center',
+                      'px-2 py-1 rounded-full',
+                      'text-sm font-medium',
+                      'transition-all duration-300 ease-in-out',
+                      'hover:bg-gradient-to-r',
+                      'cursor-pointer'
+                    )}
+                    style={{
+                        color: color || 'inherit',
+                        borderColor: color || 'currentColor',
+                        borderWidth: '1px',
+                        borderStyle: 'solid',
+                        '--tw-gradient-from': color || 'currentColor',
+                        '--tw-gradient-to': 'transparent'
+                    }}
+                  >
+                      {formattedBankName}
+                  </div>
+                  <div
+                    className={cn(
+                      'absolute inset-0',
+                      'rounded-full',
+                      'opacity-0 group-hover:opacity-20',
+                      'transition-opacity duration-300 ease-in-out',
+                      'pointer-events-none'
+                    )}
+                    style={{
+                        background: `linear-gradient(90deg, ${color || 'currentColor'} 0%, transparent 100%)`
+                    }}
+                  />
+              </div>
+            );
+        },
+        filterFn: (row, id, filterValue: string[]) => {
+            const rowValue = row.getValue(id) as string;
+            return filterValue.length === 0 || filterValue.includes(rowValue);
         },
     },
+
+
     {
         accessorKey: "Description",
         id: "Description",
@@ -237,7 +358,23 @@ export const columns: ColumnDef<Transaction>[] = [
         },
         enableSorting: false,
         enableHiding: false,
-    }
+    },
+    // // Add this new column definition to the columns array
+    // {
+    //     accessorKey: "bankLogo",
+    //     id: "bankLogo",
+    //     header: "Bank Logo",
+    //     cell: ({ row }) => {
+    //         const bankLogo = row.getValue("bankLogo") as string;
+    //         return (
+    //           <div className="flex justify-center">
+    //               <img src={bankLogo} alt="Bank Logo" className="h-8 w-8 object-contain" />
+    //           </div>
+    //         );
+    //     },
+    //     enableSorting: false,
+    //     enableHiding: false,
+    // }
 ];
 
 const STORAGE_KEY = "transactionsData";
@@ -280,8 +417,6 @@ export function TransactionsTable() {
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
-        onColumnVisibilityChange: setColumnVisibility,
-        onRowSelectionChange: setRowSelection,
         state: {
             sorting,
             columnFilters,
@@ -308,7 +443,7 @@ export function TransactionsTable() {
                     onChange={(event) =>
                         table.getColumn("Payee")?.setFilterValue(event.target.value)
                     }
-                    className="max-w-sm"
+                    className="w-64"
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

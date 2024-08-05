@@ -1,35 +1,46 @@
 "use client"
 
-import {FormEvent, useEffect, useState} from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import {Loader2} from "lucide-react";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+import { getLoggedInUser } from '@/lib/user.actions';
 
 export default function SelectBankForm() {
     const [institutions, setInstitutions] = useState([])
     const [selectedInstitution, setSelectedInstitution] = useState<any>(null)
     const [loading, setLoading] = useState(false)
+    const [open, setOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [user, setUser] = useState<any>(null)
     const router = useRouter()
 
     useEffect(() => {
-        // Retrieve institutions from localStorage
         const institutionsData = localStorage.getItem('institutions')
         if (institutionsData) {
             const parsedInstitutions = JSON.parse(institutionsData)
             parsedInstitutions.sort((a: any, b: any) => a.name.localeCompare(b.name))
             setInstitutions(parsedInstitutions)
         } else {
-            // If institutions are not available in localStorage, redirect to the select country page
             router.push('/select-country')
         }
-    }, [])
+
+        const fetchUser = async () => {
+            const loggedInUser = await getLoggedInUser()
+            setUser(loggedInUser)
+        }
+
+        fetchUser()
+    }, [router])
 
     const handleInstitutionChange = (value: string) => {
         const institution = institutions.find((inst: any) => inst.id === value)
         setSelectedInstitution(institution)
+        setOpen(false)  // Close the Popover after selection
     }
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -60,9 +71,16 @@ export default function SelectBankForm() {
             const data = await response.json()
             console.log('Initialization data:', data)
 
-            // Redirect to the agreement link
-            if (data.link) router.push(data.link)
-
+            if (data.link && data.requisitionId) {
+                // Store requisition data in localStorage
+                localStorage.setItem('pendingRequisition', JSON.stringify({
+                    requisitionId: data.requisitionId,
+                    userId: user.$id,
+                    bankName: selectedInstitution.id,
+                    bankLogo: selectedInstitution.logo
+                }));
+                router.push(data.link)
+            }
 
         } catch (error) {
             console.error('Initialization error:', error)
@@ -71,65 +89,96 @@ export default function SelectBankForm() {
             setLoading(false)
         }
     }
+
     return (
-      <div>
-        <Card className="mx-auto w-[350px]">
-            <CardHeader>
-                <CardTitle className="text-lg text-center">Select Bank</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid gap-4">
-                        <div className="grid gap-2">
-                            <Select onValueChange={handleInstitutionChange} defaultValue={selectedInstitution?.id}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Select your bank" />
-                                </SelectTrigger>
-                                <SelectContent className="shadow-lg border border-gray-200 rounded-md divide-y divide-gray-200 w-full
-                                overflow-y-auto p-2 max-h-72">
-                                    {institutions.map((institution: any) => (
-                                        <SelectItem value={institution.id} key={institution.id} className="py-2 px-4">
+      <Card className="mx-auto w-[350px]">
+          <CardHeader>
+              <CardTitle className="text-lg text-center">Select Bank</CardTitle>
+          </CardHeader>
+          <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid gap-4">
+                      <Popover open={open} onOpenChange={setOpen}>
+                          <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={open}
+                                className={cn(
+                                  "w-full justify-between",
+                                  !selectedInstitution && "text-muted-foreground"
+                                )}
+                              >
+                                  {selectedInstitution ? (
+                                    <div className="flex items-center">
+                                        <img
+                                          src={selectedInstitution.logo}
+                                          alt={selectedInstitution.name}
+                                          className="inline-block w-7 h-7 mr-2"
+                                        />
+                                        <span>{selectedInstitution.name}</span>
+                                    </div>
+                                  ) : (
+                                    "Select your bank"
+                                  )}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[350px] p-0 max-h-[300px] overflow-hidden">
+                              <Command>
+                                  <CommandInput placeholder="Search bank..." />
+                                  <CommandEmpty>No bank found.</CommandEmpty>
+                                  <CommandGroup className="overflow-auto max-h-[220px]"
+                                                style={{ scrollbarWidth: 'thin' }}>
+                                      {institutions.map((institution: any) => (
+                                        <CommandItem
+                                          key={institution.id}
+                                          value={institution.name}
+                                          onSelect={() => handleInstitutionChange(institution.id)}
+                                        >
                                             <div className="flex items-center">
                                                 <img
-                                                    src={institution.logo}
-                                                    alt={institution.name}
-                                                    className="inline-block w-7 h-7 mr-2"
+                                                  src={institution.logo}
+                                                  alt={institution.name}
+                                                  className="inline-block w-7 h-7 mr-2"
                                                 />
-                                                <span className="font-inter text-sm px-4">{institution.name}</span>
+                                                <span className="font-inter text-sm">{institution.name}</span>
                                             </div>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="mb-4"></div>
-                        {error && <div className="text-red-600 text-center">{error}</div>}
-                        <Button
-                            type="submit"
-                            className="w-full text-zinc-950  hover:bg-zinc-900 hover:text-white disabled:opacity-50 bg-white mt-6"
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                'Submit'
-                            )}
-                        </Button>
-                        {/*Create a button that redirects the user to the /select-country page*/}
-                        <Button
-                          type="button" // Add this line
-                          onClick={() => router.push('/select-country')}
-                          className="w-full text-zinc-950 hover:text-red-500 hover:border-2 hover:bg-white disabled:opacity-50 bg-white mt-2 mb-8"
-                        >
-                            Back
-                        </Button>
-                    </div>
-                </form>
-            </CardContent>
+                                            <Check
+                                              className={cn(
+                                                "ml-auto h-4 w-4",
+                                                institution.id === selectedInstitution?.id ? "opacity-100" : "opacity-0"
+                                              )}
+                                            />
+                                        </CommandItem>
+                                      ))}
+                                  </CommandGroup>
+                              </Command>
+                          </PopoverContent>
+                      </Popover>
 
-
-        </Card>
-
-      </div>
+                      {error && <div className="text-red-600 text-center">{error}</div>}
+                      <Button
+                        type="submit"
+                        className="w-full text-zinc-950 hover:bg-zinc-900 hover:text-white disabled:opacity-50 bg-white mt-6"
+                        disabled={loading}
+                      >
+                          {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            'Submit'
+                          )}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => router.push('/select-country')}
+                        className="w-full text-zinc-950 hover:text-red-500 hover:border-2 hover:bg-white disabled:opacity-50 bg-white mt-2 mb-8"
+                      >
+                          Back
+                      </Button>
+                  </div>
+              </form>
+          </CardContent>
+      </Card>
     )
 }

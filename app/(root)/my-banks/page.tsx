@@ -1,6 +1,7 @@
 import React from 'react';
 import LinkBankAccountButton from '@/components/buttons/link-bank-account';
 import AsyncMyBanks from '@/components/AsyncBankDetails';
+import SelectCurrency from '@/components/buttons/select-currency';
 
 // Wrapper component to fetch data and pass it as props
 const MyBanks = () => {

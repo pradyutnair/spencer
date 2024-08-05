@@ -26,7 +26,8 @@ export const getRequisitions = async () => {
         const reqData = query.documents.map((document: any) => ({
             requisitionId: document.requisitionId,
             bankName: document.bankName,
-            bankLogo: document.bankLogo
+            bankLogo: document.bankLogo,
+            reqCreated: document.$createdAt
         }));
         console.log("Requisitions received", reqData);
         return reqData;
@@ -52,7 +53,7 @@ export const getAccounts = async ({ requisitionIds }: { requisitionIds: string[]
         const accountsArrays = await Promise.all(accountPromises);
         allAccounts = accountsArrays.flat(); // Flatten the arrays
 
-        console.log("All accounts received", allAccounts);
+        //console.log("All accounts received", allAccounts);
         return allAccounts;
     } catch (error) {
         console.error('Error getting accounts:', error);
@@ -104,9 +105,9 @@ export const getBankData = async (): Promise<BankData[]> => {
         return [];
     }
 
-    const bankDataPromises = requisitionData.map(async ({ requisitionId, bankName, bankLogo }) => {
+    const bankDataPromises = requisitionData.map(async ({ requisitionId, bankName, bankLogo, reqCreated }) => {
         const balances = await getBalances({ requisitionIds: [requisitionId] }) || {};
-        return { requisitionId, bankName, bankLogo, balances };
+        return { requisitionId, bankName, bankLogo, balances, reqCreated };
     });
 
     return await Promise.all(bankDataPromises);
@@ -146,22 +147,24 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
             const flattenedTransactions = accountTransactions.flat();
             const correctedTransactions = await applyDataCorrections(flattenedTransactions, bankName);
 
-            console.log(`Corrected transactions for requisition ID ${requisitionId}:`, correctedTransactions);
+            // console.log(`Corrected transactions for requisition ID ${requisitionId}:`, correctedTransactions);
 
             allTransactions.push(...correctedTransactions);
+
+            console.log(`Pushing transactions for ${requisitionId} for ${bankName} to the database`);
+            // Push each transaction to the database
+            for (let transaction of correctedTransactions) {
+                await pushTransactionsDB(transaction, requisitionId);
+            }
+
+            console.log(`Transactions for ${requisitionId} written to the database`);
 
         } catch (error) {
             console.error(`Error fetching transactions for requisition ID ${requisitionId}:`, error);
         }
     }
 
-    console.log(`Retrieved ${allTransactions.length} transactions`);
 
-    allTransactions.forEach((transaction) => {
-        pushTransactionsDB(transaction, requisitionIds[0]);
-    });
-
-    console.log(`Transactions for ${requisitionIds[0]} written to the database`);
 
     return allTransactions;
 };
@@ -263,7 +266,7 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
         }
 
         let category = await getCategory(payee); // Ensure this line waits for the result
-        console.log(`Category for ${payee}: ${category}`);
+        // console.log(`Category for ${payee}: ${category}`);
 
         const containsWordsToRemove = wordsToRemoveStr.test(payee);
         const containsWordsToRemoveFirstColumn = wordsToRemoveStr.test(firstColumn);
@@ -305,6 +308,23 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
 
 // Wrap your code in an async function
 const getCategory = async (payee: string): Promise<string> => {
+    // Check if payee exists in the database and retrieve category, if not, predict it
+    try {
+        const { database } = await createAdminClient();
+
+        const query = await database.listDocuments(
+          process.env.APPWRITE_DATABASE_ID!,
+          process.env.APPWRITE_TRANSACTION_COLLECTION_ID!,
+          [Query.contains('Payee', payee)]
+        );
+
+        if (query.documents.length > 0) {
+            return query.documents[0].category;
+        }
+    } catch (error) {
+        console.error('Payee not found:', error);
+    }
+
     const category_url = 'https://appwrite-render.onrender.com/predict';
 
     try {

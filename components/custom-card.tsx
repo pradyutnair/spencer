@@ -19,6 +19,7 @@ import { useBankStore } from '@/components/stores/bank-balances-store';
 import DoughnutChartCard from '@/components/balance-pie-chart';
 import ChatComponent from '@/components/chat/chat-ui';
 import { getCurrencyIcon, getCurrencySymbol } from '@/lib/currency-mapping';
+import { CategoryPieChart } from '@/components/category-pie-chart';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -138,44 +139,6 @@ export default function CustomCard(firstname: string): JSX.Element {
   const incomePercentageDifferenceString =
     (incomePercentageDifference > 0 ? '+' : '') + incomePercentageDifference;
 
-  // Define your data and options for the chart
-  // Function to generate gradient color
-  const generateColor = (index: number) => {
-    const hue = 180; // Hue for teal
-    const saturation = 100; // Full saturation
-    const lightness = 25 + (index % 50); // Adjust lightness for variety
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  };
-
-  // Extract bank names and total balances from accountBalances
-  const labels = accountBalances.map(({ bankName }) => bankName);
-  const data = accountBalances.map(({ totalBalance }) => totalBalance);
-
-  // Generate a color for each bank
-  const backgroundColor = labels.map((_, index) => generateColor(index));
-
-  // Update the data for the doughnut chart
-  const doughnutData = {
-    labels: labels,
-    datasets: [
-      {
-        data: data,
-        backgroundColor: backgroundColor,
-        borderColor: '#ffffff', // Set the stroke color to white
-        borderWidth: 1
-      }
-    ]
-  };
-
-  // Update the options for the doughnut chart
-  const doughnutOptions = {
-    cutout: '80%', // This makes the chart a donut chart
-    plugins: {
-      legend: {
-        display: false
-      }
-    }
-  };
 
   if (loading) {
     return (
@@ -198,8 +161,8 @@ export default function CustomCard(firstname: string): JSX.Element {
     );
   }
   return (
-    <div>
-      <div className="grid grid-cols-1 pb-8 pt-3">
+    <div className={"font-plex-mono"}>
+      <div className="grid grid-cols-1 pb-8 pt-3 ">
         <Card className="col-span-4">
           <CardHeader>
             <div className="flex flex-row content-evenly justify-between pb-2">
@@ -234,7 +197,7 @@ export default function CustomCard(firstname: string): JSX.Element {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/*EXPENDITURE CARD*/}
-        <Card className="bg-zinc-100  from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
+        <Card className="bg-zinc-30  from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {'Expenditure'}
@@ -255,7 +218,7 @@ export default function CustomCard(firstname: string): JSX.Element {
         </Card>
 
         {/*INCOME CARD*/}
-        <Card className="bg-zinc-100  from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
+        <Card className="bg-zinc-30  from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{'Income'}</CardTitle>
             <Coins className="h-4 w-4 text-muted-foreground" />
@@ -269,7 +232,7 @@ export default function CustomCard(firstname: string): JSX.Element {
         </Card>
 
         {/*NET INCOME CARD*/}
-        <Card className="bg-zinc-100 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
+        <Card className="bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {'Net Income'}
@@ -283,7 +246,7 @@ export default function CustomCard(firstname: string): JSX.Element {
         </Card>
 
         {/*BALANCE BREAKDOWN CARD*/}
-        {/*<Card className="bg-zinc-100 dark:bg-zinc-950">*/}
+        {/*<Card className="bg-zinc-30 dark:bg-zinc-950">*/}
         {/*  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">*/}
         {/*    <CardTitle className="text-sm font-medium">*/}
         {/*      {'Balance Breakdown'}*/}
@@ -299,13 +262,28 @@ export default function CustomCard(firstname: string): JSX.Element {
         {/*  </CardContent>*/}
         {/*</Card>*/}
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3 ">
         <ChatComponent />
 
-        <Card className="col-span-1">
+        {/*<Card className="col-span-1">*/}
+        {/*  <CardHeader>*/}
+        {/*    <div className="flex items-center justify-between">*/}
+        {/*      <CardTitle>Balance Breakdown</CardTitle>*/}
+        {/*    </div>*/}
+        {/*  </CardHeader>*/}
+        {/*  <div className="-mt-5 mb-8 px-6">*/}
+        {/*    <CardDescription></CardDescription>*/}
+        {/*  </div>*/}
+        {/*  <CardContent>*/}
+        {/*    <div className="flex items-center justify-center">*/}
+        {/*    <DoughnutChartCard accountBalances={accountBalances} currency={currency} />*/}
+        {/*    </div>*/}
+        {/*  </CardContent>*/}
+        {/*</Card>*/}
+        <Card className="col-span-1 bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Balance Breakdown</CardTitle>
+            <div className="flex items-center justify-between ">
+              <CardTitle>Expense Breakdown</CardTitle>
             </div>
           </CardHeader>
           <div className="-mt-5 mb-8 px-6">
@@ -313,12 +291,12 @@ export default function CustomCard(firstname: string): JSX.Element {
           </div>
           <CardContent>
             <div className="flex items-center justify-center">
-            <DoughnutChartCard accountBalances={accountBalances} currency={currency} />
+              <CategoryPieChart transactions={transactions} currency={currency} />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-1">
+        <Card className="col-span-1 bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Recent Transactions</CardTitle>

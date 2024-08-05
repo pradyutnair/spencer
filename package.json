@@ -46,6 +46,7 @@
     "chartjs-plugin-datalabels": "^2.2.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "cmdk": "0.2.1",
     "currency-icons": "^1.0.14",
     "currency-symbol-map": "^5.1.0",
     "date-fns": "^2.30.0",

@@ -16,6 +16,11 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
     amount = 0;
   }
 
+  // Check if bookingDateTime is a valid date otherwise set it to bookingDate
+  if (transaction.bookingDateTime === undefined || isNaN(Date.parse(transaction.bookingDateTime))) {
+    transaction.bookingDateTime = transaction.bookingDate;
+  }
+
   try {
     // Create a new document in the requisitions collection with the user ID and requisition ID
     await database.createDocument(
@@ -42,7 +47,8 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
     );
 
   } catch (error) {
-    console.error('Error writing transaction to DB:', error);
+    // console.error('Error writing transaction to DB:', error.type);
+    // Do nothing and continue
   }
 }
 
@@ -67,7 +73,8 @@ export async function pullTransactionsDB(requisitionId: string) {
     );
 
     // Log
-    console.log('Transactions successfully fetched from Appwrite DB for requisition ID:', transactions.documents.length);
+    console.log('Transactions successfully fetched from Appwrite DB for ' +
+      'requisition ID:', transactions.documents.length);
 
     return transactions.documents;
 
@@ -84,15 +91,41 @@ export async function pullAllTransactionsDB(requisitionId: string) {
 
   try {
     // Fetch all transactions with the provided requisition ID
-    const transactions = await database.listDocuments(
+    let transactions = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
         Query.contains('requisitionId', requisitionId),
         Query.orderDesc('bookingDateTime'),
-        Query.limit(5000000), // Adjust this number based on your needs
+        Query.limit(100), // Adjust this number based on your needs
       ]
     );
+
+    // Fetch all requisition details for the provided requisition ID
+    const requisitionDetails = await database.listDocuments(
+      APPWRITE_DATABASE_ID!,
+      APPWRITE_REQ_COLLECTION_ID!,
+      [
+        Query.contains('requisitionId', requisitionId),
+        Query.limit(1),
+      ]
+    );
+
+    // Subset only the requisitionId and bankLogo from the requisition details
+    const requisitionDetailsSubset = requisitionDetails.documents.map((doc) => {
+      return {
+        requisitionId: doc.requisitionId,
+        bankLogo: doc.bankLogo,
+      };
+    });
+
+    // Add the bankLogo to each transaction
+    transactions.documents = transactions.documents.map((doc) => {
+      return {
+        ...doc,
+        bankLogo: requisitionDetailsSubset[0].bankLogo,
+      };
+    });
 
     // Log
     console.log('Transactions successfully fetched from Appwrite DB for requisition ID:', transactions.documents.length);

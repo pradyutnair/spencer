@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
     );
 
     let result = currentTransaction.documents[0];
-
     const payee = result.Payee;
 
     // Query for all transactions with the same Payee
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
-        Query.equal('Payee', payee)
+        Query.contains('Payee', payee)
       ]
     );
 

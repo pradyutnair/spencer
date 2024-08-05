@@ -36,7 +36,7 @@ export default async function RootLayout({
 
     // New layout
     return (
-        <main className="flex h-screen w-full font-inter dark:bg-zinc-950 bg-white">
+        <main className="flex h-screen w-full font-inter dark:bg-zinc-950 bg-white ">
             <ThemeProvider
                 attribute="class"
                 defaultTheme="system"

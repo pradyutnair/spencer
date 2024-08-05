@@ -4,6 +4,9 @@ import BankCard from '@/components/BankCard';
 import { useBankStore } from '@/components/stores/bank-balances-store';
 import { BankData, Transaction } from '@/types/index';
 import BankCardSkeleton from '@/components/skeletons/BankCardSkeleton';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import DoughnutChartCard from '@/components/balance-pie-chart';
+import { createAccountBalanceBreakdown } from '@/lib/bank.actions';
 
 const AsyncMyBanks = () => {
   const { bankData, bankDataLoading, setBankData, setBankDataLoading } = useBankStore();
@@ -30,13 +33,14 @@ const AsyncMyBanks = () => {
     <div className="flex">
       <div className="w-full">
         <div className="flex">
-          {bankData && bankData.map(({ requisitionId, bankName, bankLogo, balances }) => (
+          {bankData && bankData.map(({ requisitionId, bankName, bankLogo, balances, reqCreated }) => (
             <BankCard
               key={requisitionId}
+              requisitionId={requisitionId}
               balances={Object.values(balances)}
-              userName={'Geeky'}
               bankName={bankName}
               bankLogo={bankLogo}
+              reqCreated={reqCreated}
             />
           ))}
         </div>

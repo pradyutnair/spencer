@@ -4,6 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { getLoggedInUser, getUserDetails } from '@/lib/user.actions';
+import { generateGradient } from '@/lib/colourUtils';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -14,6 +16,8 @@ export default function ChatComponent() {
   const [userInput, setUserInput] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const [user, setUser] = useState({ name: '', email: '', image: '' });
+
   const { transactions } = useTransactionStore();
 
   const handleSubmit = async (input: string) => {
@@ -45,6 +49,21 @@ export default function ChatComponent() {
     }
   };
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      const user = await getLoggedInUser();
+      const userData = await getUserDetails(user.$id);
+      const firstName = userData.firstName;
+      const lastName = userData.lastName;
+      setUser({
+        name: `${firstName} ${lastName}`,
+        email: userData.email,
+        image: userData.avatarUrl,
+      });
+    };
+    fetchUser();
+  }, []);
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSubmit(userInput);
@@ -72,6 +91,8 @@ export default function ChatComponent() {
     }
   }, [chatHistory]);
 
+  const gradientBackground = generateGradient(user.name.split(' ')[0], user.name.split(' ')[1]);
+
   return (
     <Card className="max-w-xl rounded-2xl w-full mx-auto flex flex-col h-96 relative bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
       <CardHeader>
@@ -87,9 +108,20 @@ export default function ChatComponent() {
       <CardContent className="p-4 flex-grow overflow-y-auto" ref={chatContainerRef}>
         {chatHistory.map((message, index) => (
           <div key={index} className="flex items-start gap-4 mb-4">
-            <Avatar className="w-8 h-8 border">
-              <AvatarImage src="/placeholder-user.jpg" />
-              <AvatarFallback>{message.role === 'user' ? 'YO' : 'AI'}</AvatarFallback>
+            <Avatar className={message.role === 'user' ? "h-9 w-9" : "w-8 h-8 border"} style={message.role === 'user' ? { background: gradientBackground } : {}}>
+              {message.role === 'user' ? (
+                <>
+                  <AvatarImage src={user.image ?? ''} alt={user.name ?? ''} className="bg-transparent " />
+                  <AvatarFallback className="bg-transparent" style={{ background: gradientBackground }}>
+                    {user.name ? user.name.split(' ').map(n => n[0]).join('') : ''}
+                  </AvatarFallback>
+                </>
+              ) : (
+                <>
+                  <AvatarImage src="/compass.png" style={{ background: 'white' }}/>
+                  <AvatarFallback>AI</AvatarFallback>
+                </>
+              )}
             </Avatar>
             <div className="grid gap-1 items-start text-sm">
               <div className={`prose ${message.role === 'user' ? 'text-muted-foreground' : ''}`}>

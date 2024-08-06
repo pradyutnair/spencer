@@ -41,7 +41,7 @@ const CategoryCell = ({ category, onCategoryChange }: { category: string, onCate
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          className={`w-auto min-w-[120px] max-w-[150px] justify-between truncate ${categoryItem.lightColor} ${categoryItem.darkColor} border-current`}
+          className={`w-[140px] justify-between truncate ${categoryItem.lightColor} ${categoryItem.darkColor} border-current`}
         >
           <span className="truncate">{selectedCategory || "Select"}</span>
           <ChevronDown className="h-4 w-4 flex-shrink-0 ml-2" />
@@ -52,7 +52,7 @@ const CategoryCell = ({ category, onCategoryChange }: { category: string, onCate
           <DropdownMenuItem
             key={cat.name}
             onClick={() => handleCategoryChange(cat.name)}
-            className={`${cat.lightColor} ${cat.darkColor} hover:bg-gray-100 dark:hover:bg-gray-800`}
+            className={`${cat.lightColor} ${cat.darkColor} hover:bg-gray-100 dark:hover:bg-gray-800 w-[150px] truncate`}
           >
             <span className="w-full truncate text-sm">
               {cat.name}

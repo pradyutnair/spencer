@@ -4,14 +4,22 @@ import { pullTransactionsDB } from '@/lib/db.actions';
 
 export const GET = async (req: NextRequest) => {
     try {
+        // Parse the request body safely
+        // const body = await req.json().catch(() => ({}));
+        // const { tabularDataCheck = false } = body;
+
         // Get the requisition details including requisitionId
         const requisitionData = await getRequisitions();
 
         // Initialize an empty array to hold all transactions
         let allTransactions: any[] = [];
 
-        for (let { requisitionId, bankName } of requisitionData) {
-            // Fetch transactions using the retrieved requisitionId
+        // Fetch transactions for each requisition
+        for (const { requisitionId, bankName } of requisitionData) {
+            // Console log the requisitionId and bankName
+            console.log('Requisition ID:', requisitionId);
+
+            // Get all transactions for a requisition
             const transactions = await pullTransactionsDB(requisitionId);
 
             // Concatenate the transactions to the allTransactions array
@@ -35,9 +43,6 @@ export const GET = async (req: NextRequest) => {
 
     } catch (error) {
         console.error('Error fetching transactions:', error);
-        return {
-            status: 500,
-            body: 'Error fetching transactions',
-        };
+        return NextResponse.json({ error: 'Error fetching transactions' }, { status: 500 });
     }
 };

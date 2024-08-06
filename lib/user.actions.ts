@@ -5,6 +5,7 @@ import {ID} from "node-appwrite";
 import {cookies} from "next/headers";
 import {parseStringify} from "@/lib/utils";
 import {redirect} from "next/navigation";
+import { Query } from 'appwrite';
 
 export const signIn = async (formData: FormData) => {
     "use server";
@@ -34,10 +35,26 @@ export async function getLoggedInUser() {
     try {
         const {account} = await createSessionClient();
         const user = await account.get();
-        console.log('User from getLoggedInUser:', user); // Log the user
+        //console.log('User from getLoggedInUser:', user); // Log the user
         return parseStringify(user);
     } catch (error) {
         console.error('Error in getLoggedInUser:', error); // Log the error
+        return null;
+    }
+}
+
+export async function getUserDetails(userId: string) {
+    try {
+        const {database} = await createAdminClient();
+        const userDocument = await database.listDocuments(
+          process.env.APPWRITE_DATABASE_ID!,
+          process.env.APPWRITE_USER_COLLECTION_ID!,
+          [Query.equal('userId', userId)
+          ]
+        );
+        return parseStringify(userDocument.documents[0]);
+    } catch (error) {
+        console.error('Error in getUserDetails:', error);
         return null;
     }
 }

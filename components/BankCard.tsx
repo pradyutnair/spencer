@@ -86,7 +86,7 @@ const BankCard = ({
 };
 
   return (
-    <div className="flex items-center justify-center mt-9">
+    <div className="flex items-center justify-center mt-9 w-full">
       <Card className="w-full m-4">
         <div className="flex justify-between items-center">
           <CardHeader>

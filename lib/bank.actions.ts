@@ -29,7 +29,7 @@ export const getRequisitions = async () => {
             bankLogo: document.bankLogo,
             reqCreated: document.$createdAt
         }));
-        console.log("Requisitions received", reqData);
+        //console.log("Requisitions received", reqData);
         return reqData;
     } catch (error) {
         console.error('Error getting requisitions:', error);
@@ -120,6 +120,8 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
 
     dateTo = dateTo || dayjs().format("YYYY-MM-DD");
     await client.generateToken();
+
+    console.log(`getGCTransactions LOG: Fetching transactions for ${requisitionIds} requisition IDs`);
 
     for (let i = 0; i < requisitionIds.length; i++) {
         const requisitionId = requisitionIds[i];
@@ -214,7 +216,7 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
 
     const wordsToRemove = [
         "Savings vault", "Flexible profile", "Vault", "To EUR", "To USD", "Exchanged",
-        "Weekly Rule", "Monthly Rule", "From Main", "To Main", "From Personal", "To Personal",
+        "Weekly Rule", "Monthly Rule", "From Main", "To Main", "From Personal", "To Personal", "Flexible Account",
         "Balance migration", "EUR Subscriptions", "Savings", "To EUR Subscriptions", "Savings", "Flexible Cash",
     ];
 
@@ -254,10 +256,16 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
         }
 
         if (typeof payee === 'string') {
+            // Remove repeated words
+            payee = payee.replace(/\b(\w+)\s+\1\b/g, '$1');
+            // Remove .com
+            payee = payee.replace(/\.com/g, '');
             // Remove extra spaces
             payee = payee.replace(/\s+/g, ' ').trim();
             // Remove special characters and numbers
             payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
+            // Remove combill
+            payee = payee.replace(/combill/g, '');
 
             // Capitalize the first letter of every word
             payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());

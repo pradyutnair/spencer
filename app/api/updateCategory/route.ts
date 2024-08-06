@@ -27,13 +27,17 @@ export async function POST(request: NextRequest) {
 
     let result = currentTransaction.documents[0];
     const payee = result.Payee;
+    const firstWord = payee.split(' ')[0];
 
     // Query for all transactions with the same Payee
     const matchingTransactions = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
-        Query.contains('Payee', payee)
+        Query.or([
+          Query.contains('Payee', payee),
+          Query.contains('Payee', firstWord)
+          ])
       ]
     );
 

@@ -63,16 +63,14 @@ const TransactionChart: React.FC<TransactionChartProps> = ({
     const transactionDate = new Date(transaction.bookingDate)
       .toISOString()
       .split('T')[0];
-    const amount = showExpenses
-      ? Math.abs(transaction.amount)
-      : transaction.amount;
+    const amount = Math.abs(transaction.amount);
 
     if (showExpenses && transaction.amount < 0) {
       aggregatedData[transactionDate] =
         (aggregatedData[transactionDate] || 0) + amount;
     } else if (!showExpenses && transaction.amount > 0) {
       aggregatedData[transactionDate] =
-        (aggregatedData[transactionDate] || 0) + amount;
+        (aggregatedData[transactionDate] || 0) + transaction.amount;
     }
   });
 
@@ -152,7 +150,8 @@ const TransactionChart: React.FC<TransactionChartProps> = ({
           />
           <Bar
             dataKey="amount"
-            fill={showExpenses ? '#dc2626' : '#16a34a'}
+            // fill={showExpenses ? '#dc2626' : '#16a34a'}
+            fill={showExpenses ? '#b32121' : '#24954c'}
             radius={[4, 4, 0, 0]}
             fillOpacity={1}
           />

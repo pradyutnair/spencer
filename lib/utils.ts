@@ -5,6 +5,8 @@ import { twMerge } from 'tailwind-merge';
 import { Active, DataRef, Over } from '@dnd-kit/core';
 import { ColumnDragData } from '@/components/kanban/board-column';
 import { TaskDragData } from '@/components/kanban/task-card';
+import { subMonths, subWeeks, subYears } from 'date-fns';
+import { BankData } from '@/types/index';
 
 type DraggableData = ColumnDragData | TaskDragData;
 
@@ -215,6 +217,54 @@ export const getTransactionStatus = (date: Date) => {
 
   return date > twoDaysAgo ? "Processing" : "Success";
 };
+
+export const calculatePreviousPeriod = (
+  from: Date,
+  to: Date
+): { previousStart: Date; previousEnd: Date } => {
+  const daysDiff = Math.ceil((to.getTime() - from.getTime()) / (1000 * 3600 * 24));
+
+  if (daysDiff <= 7) {
+    // Weekly
+    return {
+      previousStart: subWeeks(from, 1),
+      previousEnd: subWeeks(to, 1)
+    };
+  } else if (daysDiff <= 31) {
+    // Monthly
+    return {
+      previousStart: subMonths(from, 1),
+      previousEnd: subMonths(to, 1)
+    };
+  } else {
+    // Yearly or Custom period
+    return {
+      previousStart: subYears(from, 1),
+      previousEnd: subYears(to, 1)
+    };
+  }
+};
+
+export const createAccountBalanceBreakdown = (
+  bankData: BankData[],
+  selectedCurrency: string
+) => {
+  // For each bank, sum the balances for the given selectedCurrency and return the list of bank names and total balances
+  return bankData.map(({ bankName, balances, bankLogo }) => {
+    const totalBalance = Object.values(balances).reduce(
+      (acc, { amount, currency }) => {
+        if (currency === selectedCurrency) {
+          return acc + parseFloat(amount);
+        }
+        return acc;
+      },
+      0
+    );
+
+    return { bankName, totalBalance, bankLogo };
+  });
+};
+
 
 
 

@@ -1,7 +1,7 @@
 
 //import SideBar from '@/components/SideBar';
 //import MobileNav from "@/components/MobileNavBar";
-import {getLoggedInUser} from "@/lib/user.actions";
+import { getLoggedInUser, getUserDetails } from '@/lib/user.actions';
 import {redirect} from "next/navigation";
 import React from "react";
 import Header from "@/components/layout/header";
@@ -14,7 +14,9 @@ export default async function RootLayout({
     children: React.ReactNode;
 }>) {
     const loggedIn = await getLoggedInUser();
-    if (!loggedIn) redirect('/login')
+    if (!loggedIn) {
+        redirect("/login");
+    }
     // -----------------------------------------------
     // Old layout
     // return (
@@ -43,7 +45,7 @@ export default async function RootLayout({
                 enableSystem
                 disableTransitionOnChange
             >
-            <Header user={loggedIn}/>
+            <Header/>
             <div className="flex h-screen w-full dark:bg-zinc-950 bg-white">
                 <Sidebar/>
                 <main className="flex-1 pt-8 w-full dark:bg-zinc-950 bg-white">

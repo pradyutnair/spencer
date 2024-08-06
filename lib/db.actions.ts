@@ -2,6 +2,7 @@ import {ID} from 'appwrite';
 import { createAdminClient } from '@/lib/appwrite';
 import { Transaction } from '@/types/index';
 import { Query } from 'node-appwrite';
+import { wordsToRemove } from './wordsToRemove';
 
 const { APPWRITE_DATABASE_ID, APPWRITE_REQ_COLLECTION_ID,
   APPWRITE_TRANSACTION_COLLECTION_ID, APPWRITE_USER_COLLECTION_ID } = process.env;
@@ -58,7 +59,7 @@ export async function pullTransactionsDB(requisitionId: string) {
 
   try {
     // Fetch all transactions with the provided requisition ID
-    const transactions = await database.listDocuments(
+    let transactions = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
@@ -68,13 +69,16 @@ export async function pullTransactionsDB(requisitionId: string) {
           Query.equal('exclude', false),
           Query.isNull('exclude')
         ]),
-        Query.limit(5000000), // Adjust this number based on your needs
+        Query.limit(5000000000), // Adjust this number based on your needs
       ]
     );
 
     // Log
-    console.log('Transactions successfully fetched from Appwrite DB for ' +
-      'requisition ID:', transactions.documents.length);
+
+    // Filter out transactions containing any of the words in wordsToRemove
+    transactions.documents = transactions.documents.filter(transaction => {
+      return !wordsToRemove.some(word => transaction.Payee.includes(word));
+    });
 
     return transactions.documents;
 
@@ -95,9 +99,9 @@ export async function pullAllTransactionsDB(requisitionId: string) {
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
-        Query.contains('requisitionId', requisitionId),
+        Query.equal('requisitionId', requisitionId),
         Query.orderDesc('bookingDateTime'),
-        Query.limit(100), // Adjust this number based on your needs
+        Query.limit(5000000000), // Adjust this number based on your needs
       ]
     );
 
@@ -106,7 +110,7 @@ export async function pullAllTransactionsDB(requisitionId: string) {
       APPWRITE_DATABASE_ID!,
       APPWRITE_REQ_COLLECTION_ID!,
       [
-        Query.contains('requisitionId', requisitionId),
+        Query.equal('requisitionId', requisitionId),
         Query.limit(1),
       ]
     );
@@ -128,7 +132,7 @@ export async function pullAllTransactionsDB(requisitionId: string) {
     });
 
     // Log
-    console.log('Transactions successfully fetched from Appwrite DB for requisition ID:', transactions.documents.length);
+    console.log(`Transactions successfully fetched from Appwrite DB for ${requisitionId}:`, transactions.documents.length);
 
     return transactions.documents;
 

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ColumnDef,
     ColumnFiltersState,
@@ -37,57 +37,9 @@ import dayjs from "dayjs";
 import { SkeletonTable } from '@/components/skeletons/table-skeleton';
 import { useTransactionTableStore } from '@/components/stores/transaction-table-store';
 import CategoryCell from '@/components/category-cell';
-import { startOfMonth } from 'date-fns';
+import { getMainColor } from '@/lib/colourUtils';
 
-const categories = [
-    "Groceries", "Restaurant", "Travel", "Entertainment", "Health",
-    "Subscriptions", "Shopping", "Transfers", "Income", "Finance", "Other"
-];
 
-// Function to generate a unique color from a string
-const stringToColor = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const color = `hsl(${hash % 360}, 70%, 50%)`;
-    return color;
-};
-
-// Function to extract the main color from an image
-const getMainColor = async (imageUrl: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = "Anonymous";
-        img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx?.drawImage(img, 0, 0, img.width, img.height);
-
-            const imageData = ctx?.getImageData(0, 0, canvas.width, canvas.height).data;
-            if (!imageData) {
-                reject('Failed to get image data');
-                return;
-            }
-
-            let r = 0, g = 0, b = 0;
-            for (let i = 0; i < imageData.length; i += 4) {
-                r += imageData[i];
-                g += imageData[i+1];
-                b += imageData[i+2];
-            }
-            r = Math.floor(r / (imageData.length / 4));
-            g = Math.floor(g / (imageData.length / 4));
-            b = Math.floor(b / (imageData.length / 4));
-
-            resolve(`rgb(${r},${g},${b})`);
-        };
-        img.onerror = reject;
-        img.src = imageUrl;
-    });
-};
 
 export const columns: ColumnDef<Transaction>[] = [
     {
@@ -247,8 +199,10 @@ export const columns: ColumnDef<Transaction>[] = [
               .toLowerCase()
               .replace(/\b\w/g, (char: string) => char.toUpperCase());
             const bankLogo = row.original.bankLogo as string;
+            // eslint-disable-next-line react-hooks/rules-of-hooks
             const [color, setColor] = useState<string | null>(null);
 
+            // eslint-disable-next-line react-hooks/rules-of-hooks
             useEffect(() => {
                 getMainColor(bankLogo)
                   .then(setColor)
@@ -257,38 +211,36 @@ export const columns: ColumnDef<Transaction>[] = [
 
             return (
               <div className="relative group">
-                  <div
-                    className={cn(
-                      'flex items-center justify-center',
-                      'px-2 py-1 rounded-full',
-                      'text-sm font-medium',
-                      'transition-all duration-300 ease-in-out',
-                      'hover:bg-gradient-to-r',
-                      'cursor-pointer'
-                    )}
-                    style={{
-                        color: color || 'inherit',
-                        borderColor: color || 'currentColor',
-                        borderWidth: '1px',
-                        borderStyle: 'solid',
-                        '--tw-gradient-from': color || 'currentColor',
-                        '--tw-gradient-to': 'transparent'
-                    }}
-                  >
-                      {formattedBankName}
-                  </div>
-                  <div
-                    className={cn(
-                      'absolute inset-0',
-                      'rounded-full',
-                      'opacity-0 group-hover:opacity-20',
-                      'transition-opacity duration-300 ease-in-out',
-                      'pointer-events-none'
-                    )}
-                    style={{
-                        background: `linear-gradient(90deg, ${color || 'currentColor'} 0%, transparent 100%)`
-                    }}
-                  />
+                <div
+                  className={cn(
+                    'flex items-center justify-center',
+                    'px-2 py-1 rounded-full',
+                    'text-sm font-medium',
+                    'transition-all duration-300 ease-in-out',
+                    'cursor-pointer',
+                    'hover:bg-gradient'
+                  )}
+                  style={{
+                    color: color || 'inherit',
+                    borderColor: color || 'currentColor',
+                    borderWidth: '1px',
+                    borderStyle: 'solid',
+                  }}
+                >
+                  {formattedBankName}
+                </div>
+                <div
+                  className={cn(
+                    'absolute inset-0',
+                    'rounded-full',
+                    'opacity-0 group-hover:opacity-60',
+                    'transition-opacity duration-300 ease-in-out',
+                    'pointer-events-none'
+                  )}
+                  style={{
+                    background: `linear-gradient(180deg, ${color || 'currentColor'} 0%, transparent 100%)`
+                  }}
+                />
               </div>
             );
         },
@@ -380,32 +332,15 @@ export const columns: ColumnDef<Transaction>[] = [
 const STORAGE_KEY = "transactionsData";
 
 export function TransactionsTable() {
-    const { transactions, loading, setTransactions, setLoading } = useTransactionTableStore();
+    const { transactions, loading, fetchTransactions } = useTransactionTableStore();
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = React.useState({});
 
     useEffect(() => {
-        const fetchTransactions = async () => {
-            try {
-                const response = await fetch("/api/transactionsTable");
-                const data: Transaction[] = await response.json();
-                data.sort((a: Transaction, b: Transaction) => {
-                    const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : -Infinity;
-                    const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : -Infinity;
-                    return dateB - dateA;
-                });
-                setTransactions(data);
-            } catch (error) {
-                console.error("Error fetching transactions:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchTransactions();
-    }, [setLoading, setTransactions]);
+    }, [fetchTransactions]);
 
 
     const table = useReactTable({

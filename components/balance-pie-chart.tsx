@@ -1,7 +1,9 @@
-import React from 'react';
+'use client';
+import React, { useEffect, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend, TooltipItem } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { getMainColor } from '@/lib/colourUtils';
 
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -24,37 +26,40 @@ const processBankName = (bankName: string) => {
 };
 
 interface DoughnutChartProps {
-  accountBalances: { bankName: string, totalBalance: number }[];
+  accountBalances: { bankName: string, totalBalance: number, bankLogo: string }[];
   currency: string;
 }
 
 const DoughnutChart: React.FC<DoughnutChartProps> = ({ accountBalances, currency }) => {
-  // Extract bank names and total balances from accountBalances
+  const [backgroundColor, setBackgroundColor] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchColors = async () => {
+      const colors = await Promise.all(accountBalances.map(({ bankLogo }) => getMainColor(bankLogo)));
+      setBackgroundColor(colors);
+    };
+    fetchColors();
+  }, [accountBalances]);
+
   const labels = accountBalances.map(({ bankName }) => processBankName(bankName));
   const data = accountBalances.map(({ totalBalance }) => totalBalance);
-
-  // Calculate total balance
   const totalBalance = data.reduce((acc, balance) => acc + balance, 0);
 
-  // Generate a color for each bank
-  const backgroundColor = labels.map((_, index) => generateColor(index));
-
-  // Update the data for the doughnut chart
   const doughnutData = {
     labels: labels,
     datasets: [
       {
         data: data,
         backgroundColor: backgroundColor,
-        borderColor: '#ffffff', // Set the stroke color to white
-        borderWidth: 1
+
+        borderColor: '#ffffff',
+        borderWidth: 0
       }
     ]
   };
 
-  // Update the options for the doughnut chart
   const doughnutOptions = {
-    cutout: '70%', // This makes the chart a thicker donut chart
+    cutout: '70%',
     plugins: {
       legend: {
         display: false
@@ -67,8 +72,6 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({ accountBalances, currency
         callbacks: {
           label: function(context: TooltipItem<'doughnut'>) {
             let label = context.parsed?.toString() || '';
-
-            // Add currency symbol to the tooltip
             label = `${label} ${currency}`;
             return label;
           }
@@ -78,7 +81,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({ accountBalances, currency
   };
 
   return (
-    <div className="relative flex items-center justify-center w-60 h-60">
+    <div className="relative flex items-center justify-center w-72 h-72">
       <div className="absolute flex flex-col items-center justify-center">
         <span className="text-2xl font-bold">{totalBalance}</span>
         <span className="text-muted-foreground text-sm">{currency}</span>

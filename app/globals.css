@@ -116,5 +116,10 @@
   .font-inter {
     font-family: 'Inter', sans-serif;
   }
+
+  /* Apply font-plex-mono to all numeric content */
+  .numerics span {
+    font-family: 'IBM Plex Mono', monospace;
+  }
 }
 

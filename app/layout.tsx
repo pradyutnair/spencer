@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "Compass",
   description: "Compass is a simple, flexible, and powerful budgeting app.",
   icons: {
-    icon: "/icons/logo.svg",
+    icon: "/icons/logo-v2.svg",
   }
 };
 

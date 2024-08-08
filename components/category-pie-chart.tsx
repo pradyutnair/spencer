@@ -1,27 +1,13 @@
-"use client"
-
-import React, { useState, useMemo } from "react"
-import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+'use client';
+import React, { useState, useMemo } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDateRangeStore } from '@/components/stores/date-range-store';
 import { getCurrencySymbol } from '@/lib/currency-mapping';
-
-const categories = [
-  { name: "Groceries", lightColor: "#f0f0f0", darkColor: "#d0d0d0" },
-  { name: "Restaurant", lightColor: "#d0d0d0", darkColor: "#b0b0b0" },
-  { name: "Travel", lightColor: "#a0a0a0", darkColor: "#808080" },
-  { name: "Entertainment", lightColor: "#606060", darkColor: "#404040" },
-  { name: "Health", lightColor: "#303030", darkColor: "#101010" },
-  { name: "Subscriptions", lightColor: "#f0f0f0", darkColor: "#d0d0d0" },
-  { name: "Shopping", lightColor: "#d0d0d0", darkColor: "#b0b0b0" },
-  { name: "Transfers", lightColor: "#a0a0a0", darkColor: "#808080" },
-  { name: "Income", lightColor: "#606060", darkColor: "#404040" },
-  { name: "Finance", lightColor: "#424242", darkColor: "#848484" },
-  { name: "Other", lightColor: "#f0f0f0", darkColor: "#d0d0d0" }
-]
+import { transactionCategories } from '@/lib/transactionCategoryDefinitions';
 
 const renderActiveShape = (props) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
   const currencySymbol = getCurrencySymbol(payload.currency);
   return (
     <g>
@@ -42,12 +28,12 @@ const renderActiveShape = (props) => {
         {`${currencySymbol}${Math.round(value)} `}
       </text>
     </g>
-  )
-}
+  );
+};
 
 export function CategoryPieChart({ transactions, currency }) {
-  const [activeIndex, setActiveIndex] = useState(-1)
-  const [selectedBank, setSelectedBank] = useState("All Banks")
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [selectedBank, setSelectedBank] = useState("All Banks");
   const { dateRange } = useDateRangeStore();
   const fromDate = dateRange?.from;
   const toDate = dateRange?.to;
@@ -70,24 +56,23 @@ export function CategoryPieChart({ transactions, currency }) {
       return acc;
     }, {});
 
-    return categories.map(category => ({
+    return transactionCategories.map(category => ({
       name: category.name,
       value: Math.round(categoryTotals[category.name] || 0),
       color: category.lightColor,
       darkColor: category.darkColor,
       currency: currency
-    }))
+    }));
   }, [transactions, currency, selectedBank, fromDate, toDate]);
 
   const onPieEnter = (_, index) => {
-    setActiveIndex(index)
-  }
+    setActiveIndex(index);
+  };
 
   const onPieLeave = () => {
-    setActiveIndex(-1)
-  }
+    setActiveIndex(-1);
+  };
 
-  // Helper function to process bank name
   const processBankName = (bankName: string) => {
     const name = bankName.split(/[^a-zA-Z0-9 ]/g)[0].toLowerCase();
     return name.charAt(0).toUpperCase() + name.slice(1);
@@ -104,8 +89,8 @@ export function CategoryPieChart({ transactions, currency }) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={60}  // Adjusted innerRadius to maintain proportions
-              outerRadius={100}  // Adjusted outerRadius to make the pie chart bigger
+              innerRadius={60}
+              outerRadius={100}
               fill="#8884d8"
               dataKey="value"
               onMouseEnter={onPieEnter}
@@ -118,20 +103,20 @@ export function CategoryPieChart({ transactions, currency }) {
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className={"justify-center flex flex-wrap"}>
-      <Select value={selectedBank} onValueChange={setSelectedBank}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select a bank" />
-        </SelectTrigger>
-        <SelectContent>
-          {bankNames.map((bank) => (
-            <SelectItem key={bank} value={bank}>
-              {processBankName(bank)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="justify-center flex flex-wrap">
+        <Select value={selectedBank} onValueChange={setSelectedBank}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select a bank" />
+          </SelectTrigger>
+          <SelectContent>
+            {bankNames.map((bank) => (
+              <SelectItem key={bank} value={bank}>
+                {processBankName(bank)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
-  )
+  );
 }

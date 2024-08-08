@@ -65,7 +65,7 @@ export function SelectCountryForm() {
     return (
       <Card className="mx-auto w-[350px]">
           <CardHeader>
-              <CardTitle className="text-lg">Select Country</CardTitle>
+              <CardTitle className="text-lg text-center">Select Country</CardTitle>
           </CardHeader>
           <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">

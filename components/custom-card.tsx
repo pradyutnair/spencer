@@ -80,7 +80,7 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
   }
 
   return (
-    <div className={"font-plex-mono"}>
+    <div className={"font-inter"}>
       <div className="grid grid-cols-1 pb-8 pt-3 ">
         <Card className="col-span-4">
           <CardHeader>

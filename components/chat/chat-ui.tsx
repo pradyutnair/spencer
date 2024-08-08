@@ -108,7 +108,7 @@ export default function ChatComponent() {
       <CardContent className="p-4 flex-grow overflow-y-auto" ref={chatContainerRef}>
         {chatHistory.map((message, index) => (
           <div key={index} className="flex items-start gap-4 mb-4">
-            <Avatar className={message.role === 'user' ? "h-9 w-9" : "w-8 h-8 border"} style={message.role === 'user' ? { background: gradientBackground } : {}}>
+            <Avatar className={message.role === 'user' ? "h-9 w-9" : "w-9 h-9"} style={message.role === 'user' ? { background: gradientBackground } : {}}>
               {message.role === 'user' ? (
                 <>
                   <AvatarImage src={user.image ?? ''} alt={user.name ?? ''} className="bg-transparent " />
@@ -118,7 +118,7 @@ export default function ChatComponent() {
                 </>
               ) : (
                 <>
-                  <AvatarImage src="/compass.png" style={{ background: 'white' }}/>
+                  <AvatarImage src="/icons/logo-v1.svg" />
                   <AvatarFallback>AI</AvatarFallback>
                 </>
               )}
@@ -133,20 +133,20 @@ export default function ChatComponent() {
       </CardContent>
       <form onSubmit={handleFormSubmit} className="p-4 border-gray-200 dark:border-gray-700">
         {chatHistory.length === 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex gap-2 mb-4 overflow-x-auto whitespace-nowrap no-scrollbar" onMouseDown={handleMouseDown}>
             <Button
               variant="ghost"
               className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("What is my total spending?")}
+              onClick={() => handleSuggestedQuestion("How much did I spend on Groceries between 1st and 7th of August 2024")}
             >
-              What is my total spending?
+              How much did I spend on Groceries between 1st and 7th of August 2024?
             </Button>
             <Button
               variant="ghost"
               className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("Show my largest transaction")}
+              onClick={() => handleSuggestedQuestion("Find a transaction from Openai on the 2nd of August 2024")}
             >
-              Show my largest transaction
+              Find a transaction from Openai on the 2nd of August 2024
             </Button>
             <Button
               variant="ghost"
@@ -173,12 +173,29 @@ export default function ChatComponent() {
             <span className="sr-only">Send</span>
           </Button>
         </div>
-        {/*<p className="text-xs font-medium text-center text-neutral-700 mt-2 opacity-65">*/}
-        {/*  The AI may make mistakes. Consider checking important information.*/}
-        {/*</p>*/}
       </form>
     </Card>
   );
+
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    const container = e.currentTarget;
+    let startX = e.pageX - container.offsetLeft;
+    let scrollLeft = container.scrollLeft;
+
+    const onMouseMove = (e: MouseEvent) => {
+      const x = e.pageX - container.offsetLeft;
+      const walk = (x - startX) * 2; // scroll-fast
+      container.scrollLeft = scrollLeft - walk;
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
 }
 
 function ArrowUpIcon(props: any) {

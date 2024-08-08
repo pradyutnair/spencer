@@ -29,17 +29,24 @@ export async function POST(request: NextRequest) {
     const payee = result.Payee;
     const firstWord = payee.split(' ')[0];
 
+    // console.log('Current Transaction:', result);
+    // console.log('Payee:', payee);
+    // console.log('First Word:', firstWord);
+
     // Query for all transactions with the same Payee
     const matchingTransactions = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
-        Query.or([
-          Query.contains('Payee', payee),
-          Query.contains('Payee', firstWord)
-          ])
+        // Query.or([
+        //   Query.contains('Payee', payee),
+        //   Query.contains('Payee', firstWord)
+        //   ])
+        Query.startsWith('Payee', firstWord)
       ]
     );
+
+    //console.log('Matching Transactions:', matchingTransactions);
 
     // Update all matching transactions
     const updatePromises = matchingTransactions.documents.map(transaction =>

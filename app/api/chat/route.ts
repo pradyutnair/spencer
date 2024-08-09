@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import {
   findSpecificTransaction,
   getCategoryTotalWithinTimeFrame,
+  getExpenseRate,
   getPredictedExpenditureUsingRegression,
   summarizeTransactions
 } from '@/lib/chat-functions';
@@ -24,20 +25,6 @@ export async function POST(request: Request) {
         parameters: {
           type: 'object',
           properties: {
-            transactions: {
-              type: 'array',
-              description: 'The list of transactions',
-              items: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  amount: { type: 'number' },
-                  bookingDate: { type: 'string' },
-                  description: { type: 'string' },
-                  category: { type: 'string' },
-                },
-              },
-            },
             category: {
               type: 'string',
               description: 'The category to filter transactions by',
@@ -51,7 +38,7 @@ export async function POST(request: Request) {
               description: 'The end date of the time frame (in YYYY-MM-DD format)',
             },
           },
-          required: ['transactions', 'category', 'startDate', 'endDate'],
+          required: ['category', 'startDate', 'endDate'],
         },
       },
       {
@@ -84,7 +71,7 @@ export async function POST(request: Request) {
       },
       {
         name: 'getPredictedExpenditureUsingRegression',
-        description: 'Predict the total expenditure for the current month using linear regression on daily spending data. Call this function if the user asks for the predicted expenditure for the current month.',
+        description: 'Predict the total expenditure. Call this function if the user asks for the predicted expenditure for the current month.',
         parameters: {
           type: 'object',
           properties: {
@@ -106,8 +93,42 @@ export async function POST(request: Request) {
         },
       },
       {
+        name: 'getExpenseRate',
+        description: `Calculate the expense (average daily spend) rate for a given date range. Call this if the user asks for expense rate. If no date range is provided, use the current month. The current date is ${currentDateTime}.`,
+        parameters: {
+          type: 'object',
+          properties: {
+            transactions: {
+              type: 'array',
+              description: 'The list of transactions',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  amount: { type: 'number' },
+                  bookingDate: { type: 'string' },
+                  description: { type: 'string' },
+                  category: { type: 'string' },
+                },
+              },
+            },
+            startDate: {
+              type: 'string',
+              description: 'The start date of the date range (in YYYY-MM-DD format). Optional; defaults to the start of the current month.',
+              nullable: true,
+            },
+            endDate: {
+              type: 'string',
+              description: 'The end date of the date range (in YYYY-MM-DD format). Optional; defaults to the end of the current month.',
+              nullable: true,
+            },
+          },
+          required: ['transactions'],
+        },
+      },
+      {
         name: 'summarizeTransactions',
-        description: 'Summarize transaction data based on various filters and options. Call this function to get a summary, total, or detailed information about transactions.',
+        description: `Summarize transaction data based on various filters and options. Call this function if the user asks for a summary, total, or list information about transactions. If the user asks for recent transactions, use the past week as the date range. The current date is ${currentDateTime}`,
         parameters: {
           type: 'object',
           properties: {
@@ -157,7 +178,6 @@ export async function POST(request: Request) {
               description: 'The type of summary or information requested: total, average, largest, smallest, count, or detailed.',
             },
           },
-          required: ['transactions'],
         },
       }
     ];
@@ -166,7 +186,7 @@ export async function POST(request: Request) {
     const initialResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You are a helpful assistant that answers questions about financial transactions. The current date is ${currentDateTime}.` },
+        { role: 'system', content: `You are a helpful assistant that answers questions about financial transactions. The current date is ${currentDateTime}. Do not answer questions about anything else apart from transaction data. If the question is not about personal finances, reply "I am a personal finance assistant, I cannot help you with your query."` },
         { role: 'user', content: userInput },
       ],
       functions,
@@ -194,13 +214,16 @@ export async function POST(request: Request) {
         case 'summarizeTransactions':
           result = summarizeTransactions(transactions, parameters);
           break;
+        case 'getExpenseRate':
+          result = getExpenseRate(transactions, parameters.startDate, parameters.endDate);
+          break;
       }
 
       // Create a human-like response
       const humanLikeResponse = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `You are a helpful assistant that provides detailed and conversational responses based on transaction data.` },
+          { role: 'system', content: `You are a helpful assistant that provides conversational responses based on transaction data.` },
           { role: 'user', content: `Here is the information: ${result}. Generate a summarised concise human-like non-verbose response based on this information. ` },
         ],
       });
@@ -208,11 +231,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: humanLikeResponse.choices[0]?.message?.content || 'Sorry, I could not generate an answer.' });
     }
 
-    // Fallback response if no function call was made
-    return NextResponse.json({ message: 'Sorry, I could not determine the required information.' });
+    // Otherwise, return the initial response
+    return NextResponse.json({ message: initialResponse.choices[0]?.message?.content || 'Sorry, I could not generate an answer.' });
 
   } catch (error) {
     console.error('Error getting response from OpenAI:', error);
-    return NextResponse.json({ error: 'Failed to get response from OpenAI' }, { status: 500 });
+    return NextResponse.json({ message: 'Sorry, I encountered an error while processing your request.' });
   }
 }

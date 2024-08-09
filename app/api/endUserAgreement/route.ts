@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { createGoCardlessClient } from "@/lib/gocardless";
+import { createGoCardlessClient } from '@/lib/gocardless';
 
 // Define the POST function
 export async function POST(request: NextRequest) {

@@ -1,10 +1,10 @@
 'use server';
 
-import {createAdminClient, createSessionClient} from "@/lib/appwrite";
-import {ID} from "node-appwrite";
-import {cookies} from "next/headers";
-import {parseStringify} from "@/lib/utils";
-import {redirect} from "next/navigation";
+import { createAdminClient, createSessionClient } from '@/lib/appwrite';
+import { ID } from 'node-appwrite';
+import { cookies } from 'next/headers';
+import { parseStringify } from '@/lib/utils';
+import { redirect } from 'next/navigation';
 import { Query } from 'appwrite';
 
 export const signIn = async (formData: FormData) => {

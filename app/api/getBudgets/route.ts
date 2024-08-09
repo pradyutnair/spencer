@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBankData } from '@/lib/bank.actions';
+import { getBudgetData } from '@/lib/bank.actions';
 
 export const GET = async (req: NextRequest) => {
   try {
-    // Fetch the bank data
-    const bankData = await getBankData();
-    //console.log('Bank data:', bankData);
+    // Fetch the budget data
+    const budgetData = await getBudgetData()
 
     // Return the bank data as the response body
-    return NextResponse.json(bankData);
+    return NextResponse.json(budgetData);
 
   } catch (error) {
     console.error('Error fetching balances:', error);

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import NordigenClient from 'nordigen-node';
-import { parseStringify } from "@/lib/utils";
 
 export async function POST(request: NextRequest) {
     try {

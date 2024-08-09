@@ -1,28 +1,28 @@
 'use client';
 import React, { useEffect } from 'react';
-import { Coins, SquareArrowOutUpRight, SquarePlus } from 'lucide-react';
+import { Coins, ExternalLink, ExternalLinkIcon, SquareArrowOutUpRight, SquarePlus, Layers3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTransactionContext, TransactionProvider } from '@/hooks/transaction-context';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
-import { fetchCurrentWeekExpenses, fetchExpenditure, fetchIncome } from '@/lib/analytics.actions';
+import { fetchExpenditure, fetchIncome } from '@/lib/analytics.actions';
 import { SkeletonCard } from '@/components/skeletons/card-skeleton';
 import TransactionChart from '@/components/transaction-chart';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { RecentExpensesTable } from '@/components/recent-expenses-table';
-import Link from 'next/link';
 import { useCurrencyStore } from '@/components/stores/currency-store';
 import { ArcElement, Chart as ChartJS, Legend, Tooltip } from 'chart.js';
 import { useBankStore } from '@/components/stores/bank-balances-store';
 import ChatComponent from '@/components/chat/chat-ui';
 import { getCurrencySymbol } from '@/lib/currency-mapping';
 import { CategoryPieChart } from '@/components/category-pie-chart';
+import BudgetComponent from '@/components/budget-progress';
+import Link from 'next/link';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
-  const { transactions, loading: transactionsLoading } = useTransactionContext();
-  const { bankData, bankDataLoading, fetchBankData } = useBankStore();
+  const { transactions } = useTransactionContext();
+  const { bankDataLoading, fetchBankData } = useBankStore();
   const { dateRange } = useDateRangeStore();
   const { currency } = useCurrencyStore();
 
@@ -45,10 +45,10 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
     currency
   );
 
-  const currentWeekExpenditure = fetchCurrentWeekExpenses(
-    transactions,
-    currency
-  );
+  // const currentWeekExpenditure = fetchCurrentWeekExpenses(
+  //   transactions,
+  //   currency
+  // );
 
   let netIncome = currentIncome - -currentExpenditure;
   netIncome = Number(netIncome.toFixed(2));
@@ -158,12 +158,13 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
           </CardContent>
         </Card>
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3 ">
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-3 h-full">
         <ChatComponent />
-        <Card className="col-span-1 bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
+        <Card className="col-span-1 bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br h-full max-h-96 overflow-y-auto scrollbar-thin">
           <CardHeader>
-            <div className="flex items-center justify-between ">
+            <div className="flex items-center justify-between">
               <CardTitle>Expense Breakdown</CardTitle>
+              <Layers3 className="h-4 w-5 text-muted-foreground" />
             </div>
           </CardHeader>
           <div className="-mt-5 mb-8 px-6">
@@ -175,25 +176,14 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="col-span-1 bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Transactions</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Link href={'/transaction-history'}>
-                  <SquareArrowOutUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </div>
-            </div>
-          </CardHeader>
-          <div className="-mt-5 mb-8 px-6">
-            <CardDescription></CardDescription>
+        <div className="col-span-1 flex h-full relative max-h-96 overflow-y-auto scrollbar-thin">
+          <BudgetComponent transactions={transactions} useColorScheme={false} />
+          <div className="absolute top-2 right-2 flex items-center justify-center">
+            <Link href={"/my-banks"}>
+              <ExternalLinkIcon className="h-4 w-5 mr-3 mt-3 text-muted-foreground" />
+            </Link>
           </div>
-          <CardContent>
-            <RecentExpensesTable transactions={transactions} />
-          </CardContent>
-        </Card>
+        </div>
       </div>
     </div>
   );

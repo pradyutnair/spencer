@@ -29,6 +29,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    --stroke-color: #aeaeae;
   }
 
   .dark {
@@ -56,6 +57,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --stroke-color: #202020;
   }
 }
 
@@ -130,6 +132,36 @@
 
   .no-scrollbar::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
+  }
+
+  /* Light mode gradient */
+  .light-gradient {
+    background: linear-gradient(135deg, #f0f0f0, #d9d9d9);
+  }
+
+  /* Dark mode gradient */
+  .dark-gradient {
+    background: linear-gradient(135deg, #131313, #1a1a1a);
+  }
+
+  /* Add this CSS to your global styles or a relevant CSS file */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 

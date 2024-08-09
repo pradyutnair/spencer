@@ -1,5 +1,5 @@
 import { Icons } from '@/components/icons';
-import {Account} from "node-appwrite";
+import { Account } from 'node-appwrite';
 import { UseFormSetValue } from 'react-hook-form';
 
 export interface NavItem {
@@ -378,6 +378,22 @@ export interface BankData {
   bankLogo: string;
   balances: Record<string, Balance>;
   reqCreated: string;
+}
+
+export interface BudgetData {
+  userId: string;
+  Groceries: number;
+  Restaurant: number;
+  Shopping: number;
+  Travel: number;
+  Transfers: number;
+  Health: number;
+  Entertainment: number;
+  Subscriptions: number;
+  Income: number;
+  Other: number;
+  Finance: number;
+
 }
 
 export interface Balance {

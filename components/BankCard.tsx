@@ -4,7 +4,6 @@ import { JSX, ReactNode, PromiseLikeOfReactNode } from "react";
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
-import { router } from 'next/client';
 
 interface Balance {
   amount: string;
@@ -36,14 +35,10 @@ const BankCard = ({
   const nonZeroBalances = Object.entries(aggregatedBalances).filter(([_, amount]) => amount > 0);
 
   const displayBankName = bankName.split(/[^a-zA-Z0-9 ]/g)[0].toLowerCase().replace(/^\w/, c => c.toUpperCase());
-  // Get the number of days between the requisition creation date + 120 days and today
   let daysToExpire = Math.ceil((new Date(reqCreated).getTime() + 120 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
-  //daysToExpire = 0
 
-  // Format the days to expire with a text
   let expiryDays = daysToExpire > 0 ? `${daysToExpire} days` : 'Expired';
 
-  // If expired, color the text red
   let formattedDaysToExpire: string | number | boolean | JSX.Element | Iterable<ReactNode> | PromiseLikeOfReactNode | null | undefined;
   if (daysToExpire <= 0) {
     formattedDaysToExpire =
@@ -55,49 +50,46 @@ const BankCard = ({
   }
 
   const renewBankAccess = async () => {
-  console.log('Renewing access for requisition:', requisitionId);
-  try {
-    const response = await fetch('/api/renewBankAccess', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ requisitionId: requisitionId })
-    });
+    console.log('Renewing access for requisition:', requisitionId);
+    try {
+      const response = await fetch('/api/renewBankAccess', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ requisitionId: requisitionId })
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      const gcRenewalUrl = data.link;
-      console.log('Renewal URL:', gcRenewalUrl);
-      // Save the requisition ID in localStorage
-      localStorage.setItem('newRequisitionDetails', JSON.stringify({
-        newRequisitionId: data.requisitionId,
-        oldRequisitionId: requisitionId,
-      }));
-      // Redirect to the GoCardless renewal page
-      window.location.href = gcRenewalUrl;
-    } else {
-      console.error('Network response was not ok');
+      if (response.ok) {
+        const data = await response.json();
+        const gcRenewalUrl = data.link;
+        console.log('Renewal URL:', gcRenewalUrl);
+        localStorage.setItem('newRequisitionDetails', JSON.stringify({
+          newRequisitionId: data.requisitionId,
+          oldRequisitionId: requisitionId,
+        }));
+        window.location.href = gcRenewalUrl;
+      } else {
+        console.error('Network response was not ok');
+      }
+    } catch (error) {
+      console.error('Error renewing access:', error);
     }
-  } catch (error) {
-    console.error('Error renewing access:', error);
-    // Handle error (e.g., show an error message)
-  }
-};
+  };
 
   return (
-    <div className="flex items-center justify-center mt-9 w-full">
+    <div className="flex flex-col items-center justify-center mt-9 w-full">
       <Card className="w-full m-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-center">
           <CardHeader>
             <CardTitle>{displayBankName}</CardTitle>
           </CardHeader>
           <Image src={bankLogo} width={45} height={32} alt="bank logo" className="ml-2 mr-3.5" />
         </div>
         <CardContent>
-          <div className="grid grid-cols-1 items-center mr-32">
+          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-2">
             {nonZeroBalances.map(([currency, amount], index) => (
-              <div className="grid grid-cols-2 items-center gap-6" key={index}>
+              <div className="flex flex-col sm:flex-row items-center gap-2" key={index}>
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{currency}</div>
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
                   {showBalance ? `${amount.toFixed(2)}` : 'Hidden'}
@@ -131,4 +123,5 @@ const BankCard = ({
     </div>
   );
 };
+
 export default BankCard;

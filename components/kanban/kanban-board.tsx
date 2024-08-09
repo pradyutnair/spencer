@@ -7,17 +7,17 @@ import { hasDraggableData } from '@/lib/utils';
 import {
   Announcements,
   DndContext,
+  type DragEndEvent,
+  type DragOverEvent,
   DragOverlay,
+  type DragStartEvent,
   MouseSensor,
   TouchSensor,
   UniqueIdentifier,
   useSensor,
-  useSensors,
-  type DragEndEvent,
-  type DragOverEvent,
-  type DragStartEvent
+  useSensors
 } from '@dnd-kit/core';
-import { SortableContext, arrayMove } from '@dnd-kit/sortable';
+import { arrayMove, SortableContext } from '@dnd-kit/sortable';
 import type { Column } from './board-column';
 import { BoardColumn, BoardContainer } from './board-column';
 import NewSectionDialog from './new-section-dialog';

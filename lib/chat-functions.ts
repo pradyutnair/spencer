@@ -1,5 +1,5 @@
 import { Transaction } from '@/types/index';
-import { format, parse, isValid } from 'date-fns';
+import { differenceInDays, endOfMonth, format, startOfMonth } from 'date-fns';
 import { formatAmount } from '@/lib/utils';
 
 export const getCategoryTotalWithinTimeFrame = (
@@ -10,6 +10,8 @@ export const getCategoryTotalWithinTimeFrame = (
 ) => {
   const start = new Date(startDate);
   const end = new Date(endDate);
+  // Capitalise first letter of category
+  category = category.charAt(0).toUpperCase() + category.slice(1);
 
   console.log('start', start);
   console.log('end', end);
@@ -34,6 +36,38 @@ export const getCategoryTotalWithinTimeFrame = (
   return `You spent ${formattedTotal} on ${category} between the ${startDateFormatted} and ${endDateFormatted} of ${year}.`;
 };
 
+export const getExpenseRate = (
+  transactions: any[],
+  startDate?: string,
+  endDate?: string
+) => {
+  // Use current month if no start and end dates are provided
+  const start = startDate ? new Date(startDate) : startOfMonth(new Date());
+  const end = endDate ? new Date(endDate) : endOfMonth(new Date());
+
+  console.log('start', start);
+  console.log('end', end);
+
+  // Calculate the total amount spent in the date range
+  let total = transactions
+    .filter(transaction => {
+      const transactionDate = new Date(transaction.bookingDate);
+      return transactionDate >= start && transactionDate <= end;
+    })
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+
+  // Calculate the number of days in the date range
+  const numDays = differenceInDays(end, start) + 1; // +1 to include the end date
+  const dailyExpenseRate = total / numDays;
+
+  const startDateFormatted = format(start, 'dd MMM');
+  const endDateFormatted = format(end, 'dd MMM');
+  const year = format(start, 'yyyy');
+
+  const formattedTotal = formatAmount(dailyExpenseRate);
+
+  return `Your average daily spending between the ${startDateFormatted} and ${endDateFormatted} of ${year} is ${formattedTotal}.`;
+};
 
 
 export const findSpecificTransaction = (
@@ -71,9 +105,9 @@ export const findSpecificTransaction = (
   }
 
   // Filter the transactions for 31st July 2024 and with payee = 'Sreedevi Kumari'
-  const customFilteredTransactions = transactions.filter(transaction => {
-    return transaction.bookingDate === '2024-07-31' && transaction.Payee === 'Sreedevi Kumari';
-  });
+  // const customFilteredTransactions = transactions.filter(transaction => {
+  //   return transaction.bookingDate === '2024-07-31' && transaction.Payee === 'Sreedevi Kumari';
+  // });
 
   console.log('filteredTransactions', filteredTransactions);
   //console.log('customFilteredTransactions', customFilteredTransactions);
@@ -236,7 +270,7 @@ export const getPredictedExpenditureUsingRegression = (transactions: Transaction
   // Predict the total expenditure for the last day of the month
   const predictedExpenditure = slope * daysInMonth + intercept;
 
-  return `The predicted expenditure for the current month is ${predictedExpenditure.toFixed(2)}.`;
+  return `The predicted expenditure for the current month is ${formatAmount(predictedExpenditure)}.`;
 };
 
 

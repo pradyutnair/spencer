@@ -1,14 +1,14 @@
-"use client"
+'use client';
 
-import { useRouter } from 'next/navigation'
-import { FormEvent, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2, Check, ChevronsUpDown } from "lucide-react"
-import europeanCountries from '@/lib/europeanCountries'
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
+import { useRouter } from 'next/navigation';
+import { FormEvent, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import europeanCountries from '@/lib/europeanCountries';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 const FormSchema = {
     country: "",

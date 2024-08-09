@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTransactionStore } from '@/components/stores/transaction-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { getLoggedInUser, getUserDetails } from '@/lib/user.actions';
 import { generateGradient } from '@/lib/colourUtils';
 
@@ -94,18 +94,17 @@ export default function ChatComponent() {
   const gradientBackground = generateGradient(user.name.split(' ')[0], user.name.split(' ')[1]);
 
   return (
-    <Card className="max-w-xl rounded-2xl w-full mx-auto flex flex-col h-96 relative bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
-      <CardHeader>
+    <Card className="max-w-xl rounded-2xl w-full mx-auto flex flex-col h-full relative bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Assistant</CardTitle>
         </div>
       </CardHeader>
-      <div className="absolute top-3 right-3">
+      <div className="absolute top-3 right-3 mr-2">
         <Button variant="ghost" onClick={handleReset} aria-label="Reset chat" className="p-1">
           <ResetIcon className="w-4 h-4 text-muted-foreground" />
         </Button>
       </div>
-      <CardContent className="p-4 flex-grow overflow-y-auto" ref={chatContainerRef}>
+      <CardContent className="p-4 flex-grow overflow-y-auto font-plex-mono" ref={chatContainerRef}>
         {chatHistory.map((message, index) => (
           <div key={index} className="flex items-start gap-4 mb-4">
             <Avatar className={message.role === 'user' ? "h-9 w-9" : "w-9 h-9"} style={message.role === 'user' ? { background: gradientBackground } : {}}>
@@ -131,9 +130,23 @@ export default function ChatComponent() {
           </div>
         ))}
       </CardContent>
-      <form onSubmit={handleFormSubmit} className="p-4 border-gray-200 dark:border-gray-700">
+      <form onSubmit={handleFormSubmit} className="p-4 border-gray-200 dark:border-gray-700 font-plex-mono">
         {chatHistory.length === 0 && (
           <div className="flex gap-2 mb-4 overflow-x-auto whitespace-nowrap no-scrollbar" onMouseDown={handleMouseDown}>
+            <Button
+              variant="ghost"
+              className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
+              onClick={() => handleSuggestedQuestion("What is my expense rate?")}
+            >
+              What is my expense rate?
+            </Button>
+            <Button
+              variant="ghost"
+              className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
+              onClick={() => handleSuggestedQuestion("What is my predicted expenditure?")}
+            >
+              What is my predicted expenditure?
+            </Button>
             <Button
               variant="ghost"
               className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
@@ -144,9 +157,9 @@ export default function ChatComponent() {
             <Button
               variant="ghost"
               className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("Find a transaction from Openai on the 2nd of August 2024")}
+              onClick={() => handleSuggestedQuestion("Find a transaction to Openai on the 2nd of August 2024")}
             >
-              Find a transaction from Openai on the 2nd of August 2024
+              Find a transaction to Openai on the 2nd of August 2024
             </Button>
             <Button
               variant="ghost"

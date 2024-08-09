@@ -1,6 +1,6 @@
 import React from 'react';
-import {LoginForm} from "@/components/forms/LoginForm";
-import Image from "next/image";
+import { LoginForm } from '@/components/forms/LoginForm';
+import Image from 'next/image';
 
 const LoginPage = () => {
     return (

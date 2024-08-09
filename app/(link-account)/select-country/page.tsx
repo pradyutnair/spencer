@@ -1,6 +1,6 @@
 import React from 'react';
-import { SelectCountryForm } from "@/components/forms/CountrySelectForm";
-import Image from "next/image";
+import { SelectCountryForm } from '@/components/forms/CountrySelectForm';
+import Image from 'next/image';
 
 const CountrySelectPage = () => {
   return (

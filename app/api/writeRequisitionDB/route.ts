@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { createAdminClient } from "@/lib/appwrite";
-import { ID } from "node-appwrite";
+import { createAdminClient } from '@/lib/appwrite';
+import { ID } from 'node-appwrite';
 
 const { APPWRITE_DATABASE_ID, APPWRITE_REQ_COLLECTION_ID } = process.env;
 

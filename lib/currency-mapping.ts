@@ -1,6 +1,5 @@
 // utils/currency-utils.ts
 import { EuroIcon, Icon } from 'lucide-react';
-import icons from 'currency-icons';
 import currencySymbolMap from 'currency-symbol-map';
 
 export function getCurrencyIcon(currency: string): typeof Icon {

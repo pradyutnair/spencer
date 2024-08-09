@@ -1,5 +1,5 @@
 /* eslint-disable no-prototype-builtins */
-import qs from "query-string";
+import qs from 'query-string';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Active, DataRef, Over } from '@dnd-kit/core';

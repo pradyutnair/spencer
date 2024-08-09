@@ -126,8 +126,8 @@ const TransactionChart: React.FC<TransactionChartProps> = ({
         <BarChart data={data}>
           <CartesianGrid
             vertical={false}
-            stroke="#202020"
-            strokeDasharray="2"
+            stroke="var(--stroke-color)"
+            strokeDasharray="3"
           />
           <XAxis
             dataKey="bookingDate"

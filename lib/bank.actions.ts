@@ -1,12 +1,13 @@
 // lib/bank.actions.ts
-import { BankData, Transaction } from '@/types';
+import { BankData, BudgetData, Transaction } from '@/types';
 import dayjs from 'dayjs';
 import { createGoCardlessClient } from '@/lib/gocardless';
 import { createAdminClient } from '@/lib/appwrite';
 import { getLoggedInUser } from '@/lib/user.actions';
-import { Query } from 'node-appwrite';
+import { ID, Query } from 'node-appwrite';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { pushTransactionsDB } from '@/lib/db.actions';
+import Fuse from 'fuse.js';
 
 dayjs.extend(weekOfYear);
 
@@ -113,6 +114,69 @@ export const getBankData = async (): Promise<BankData[]> => {
     return await Promise.all(bankDataPromises);
 };
 
+export const getBudgetData = async (): Promise<BudgetData[]> => {
+    const user = await getLoggedInUser();
+    const userId = user?.$id;
+
+    if (userId) {
+        try {
+            const { database } = await createAdminClient();
+            const query = await database.listDocuments(
+              process.env.APPWRITE_DATABASE_ID!,
+              process.env.APPWRITE_BUDGET_COLLECTION_ID!,
+              [Query.equal('userId', userId)]
+            );
+
+            if (query.documents.length === 0) {
+                // No budget exists, create a default one
+                const defaultBudget = {
+                    userId,
+                    Groceries: 0,
+                    Restaurant: 0,
+                    Shopping: 0,
+                    Travel: 0,
+                    Transfers: 0,
+                    Health: 0,
+                    Entertainment: 0,
+                    Subscriptions: 0,
+                    Income: 0,
+                    Other: 0,
+                    Finance: 0
+                };
+                await database.createDocument(
+                  process.env.APPWRITE_DATABASE_ID!,
+                  process.env.APPWRITE_BUDGET_COLLECTION_ID!,
+                  ID.unique(),
+                  defaultBudget
+                );
+                return [defaultBudget];
+            }
+
+            return query.documents.map((document: any) => ({
+                userId: document.userId,
+                Groceries: document.Groceries,
+                Restaurant: document.Restaurant,
+                Shopping: document.Shopping,
+                Travel: document.Travel,
+                Transfers: document.Transfers,
+                Health: document.Health,
+                Entertainment: document.Entertainment,
+                Subscriptions: document.Subscriptions,
+                Income: document.Income,
+                Other: document.Other,
+                Finance: document.Finance
+            }));
+
+        } catch (error) {
+            console.error('Error getting or creating budgets:', error);
+            return [];
+        }
+    } else {
+        return [];
+    }
+};
+
+
 // Retrieve transactions for a given array of requisitionIds from GC
 export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, dateTo }: { requisitionIds: string[], bankNames?: string[], dateFrom?: string, dateTo?: string }): Promise<Transaction[]> => {
     const client = await createGoCardlessClient();
@@ -215,12 +279,24 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
     });
 
     const wordsToRemove = [
-        "Savings vault", "Flexible profile", "Vault", "To EUR", "To USD", "Exchanged",
+        "Savings vault", "Flexible profile", "Vault", "To EUR", "To USD", "Exchanged", "Income Sorter",
         "Weekly Rule", "Monthly Rule", "From Main", "To Main", "From Personal", "To Personal", "Flexible Account",
         "Balance migration", "EUR Subscriptions", "Savings", "To EUR Subscriptions", "Savings", "Flexible Cash",
     ];
 
     const wordsToRemoveStr = new RegExp(wordsToRemove.join('|'), 'i');
+
+    // List of known payees for matching
+    const knownPayees = [
+        'Spotify', 'Apple', 'Google'
+        // Add more standardized payees here
+    ];
+
+    // Fuzzy search options
+    const fuse = new Fuse(knownPayees, {
+        includeScore: true,
+        threshold: 0.3 // Lower threshold for stricter matching
+    });
 
     const correctedTransactions: Transaction[] = [];
 
@@ -269,12 +345,17 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
 
             // Capitalize the first letter of every word
             payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
+
+            // Perform fuzzy matching to find the best match
+            const result = fuse.search(payee);
+            if (result.length > 0 && result[0].score! < 0.3) { // Adjust threshold as needed
+                payee = result[0].item;
+            }
         } else {
-            continue
+            continue;
         }
 
         let category = await getCategory(payee); // Ensure this line waits for the result
-        // console.log(`Category for ${payee}: ${category}`);
 
         const containsWordsToRemove = wordsToRemoveStr.test(payee);
         const containsWordsToRemoveFirstColumn = wordsToRemoveStr.test(firstColumn);
@@ -311,6 +392,7 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
 
     return correctedTransactions;
 };
+
 
 
 

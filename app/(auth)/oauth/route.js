@@ -1,10 +1,10 @@
 // src/app/oauth/route.js
 
-import {createAdminClient} from "../../../lib/appwrite";
-import {cookies} from "next/headers";
-import {NextResponse} from "next/server";
-import {ID} from "node-appwrite";
-import {getLoggedInUser} from "../../../lib/user.actions";
+import { createAdminClient } from '../../../lib/appwrite';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { ID } from 'node-appwrite';
+import { getLoggedInUser } from '../../../lib/user.actions';
 
 export async function GET(request) {
     try {

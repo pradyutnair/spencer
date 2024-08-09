@@ -1,7 +1,7 @@
-import type {Metadata} from "next";
-import {IBM_Plex_Serif, Inter} from "next/font/google";
-import "./globals.css";
-import ThemeProvider from "@/components/layout/ThemeToggle/theme-provider";
+import type { Metadata } from 'next';
+import { IBM_Plex_Serif, Inter } from 'next/font/google';
+import './globals.css';
+import ThemeProvider from '@/components/layout/ThemeToggle/theme-provider';
 import React from 'react';
 
 const inter = Inter({subsets: ["latin"], variable: '--font-inter'});

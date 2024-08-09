@@ -1,4 +1,3 @@
-import {ID} from 'appwrite';
 import { createAdminClient } from '@/lib/appwrite';
 import { Transaction } from '@/types/index';
 import { Query } from 'node-appwrite';
@@ -20,6 +19,14 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
   // Check if bookingDateTime is a valid date otherwise set it to bookingDate
   if (transaction.bookingDateTime === undefined || isNaN(Date.parse(transaction.bookingDateTime))) {
     transaction.bookingDateTime = transaction.bookingDate;
+  }
+
+  // Check if transaction already exists in the database
+  const existingTransaction = await checkTransactionExistence(transaction.transactionId);
+
+  // If the transaction already exists, do not write it to the database
+  if (existingTransaction) {
+    return;
   }
 
   try {
@@ -163,6 +170,31 @@ export async function updateTransactionExclusion(transactionId: string, exclude:
 
   } catch (error) {
     console.error('Error updating transaction exclusion in Appwrite DB:', error);
+    return null;
+  }
+}
+
+export async function checkTransactionExistence(transactionId: string) {
+  const { database } = await createAdminClient();
+
+  try {
+    // Update the document in the transactions collection
+    const updatedExclusion = await database.listDocuments(
+      APPWRITE_DATABASE_ID!,
+      APPWRITE_TRANSACTION_COLLECTION_ID!,
+      [
+        Query.equal('$id', transactionId),
+        Query.limit(1),
+      ]
+    );
+
+    // Return true if the transaction exists, false otherwise
+    return updatedExclusion.documents.length > 0;
+
+
+
+  } catch (error) {
+    console.error('Error checking transaction existence in Appwrite DB:', error);
     return null;
   }
 }

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from "@/lib/appwrite";
+import { createAdminClient } from '@/lib/appwrite';
 import { Query } from 'appwrite';
-import { createGoCardlessClient } from '@/lib/gocardless';
-import { randomUUID } from 'crypto';
 
 const { APPWRITE_DATABASE_ID, APPWRITE_REQ_COLLECTION_ID } = process.env;
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import Image from "next/image";
-import SelectBankForm from "@/components/forms/BankSelectForm";
+import Image from 'next/image';
+import SelectBankForm from '@/components/forms/BankSelectForm';
 
 const BankSelectPage = () => {
   return (

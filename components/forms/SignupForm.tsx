@@ -1,11 +1,11 @@
-import Link from "next/link";
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardDescription, CardHeader, CardTitle,} from "@/components/ui/card";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 // import { signup } from "@/lib/auth-actions";        THIS IS FOR SUPABASE
-import {signUpWithEmail} from "@/lib/user.actions";
-import SignInWithGoogleButton from "@/components/buttons/SignInWithGoogleButton"; // THIS IS FOR APPWRITE
+import { signUpWithEmail } from '@/lib/user.actions';
+import SignInWithGoogleButton from '@/components/buttons/SignInWithGoogleButton'; // THIS IS FOR APPWRITE
 
 // Sign up form
 export function SignUpForm() {

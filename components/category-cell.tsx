@@ -29,6 +29,7 @@ const CategoryCell = ({ category, onCategoryChange }: { category: string, onCate
         <Button
           variant="outline"
           className={`w-[140px] justify-between truncate ${categoryItem.lightTextClass} ${categoryItem.darkTextClass} border-current`}
+          //className={`w-[140px] justify-between truncate border-current text-teal-600 dark:text-gray-400 bg-transparent`}
         >
           <span className="truncate">{selectedCategory || "Select"}</span>
           <ChevronDown className="h-4 w-4 flex-shrink-0 ml-2" />

@@ -79,9 +79,9 @@ export function CategoryPieChart({ transactions, currency }) {
   };
 
   return (
-    <div className="flex flex-col max-h-[280px] w-full justify-center">
-      <div className="flex items-center justify-center" style={{ width: '100%', height: 320 }}>
-        <ResponsiveContainer>
+    <div className="flex flex-col h-full w-full justify-center">
+      <div className="flex items-center justify-center w-full h-full">
+        <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               activeIndex={activeIndex}
@@ -89,8 +89,8 @@ export function CategoryPieChart({ transactions, currency }) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={100}
+              innerRadius={80}  // Increased inner radius
+              outerRadius={140} // Increased outer radius
               fill="#8884d8"
               dataKey="value"
               onMouseEnter={onPieEnter}

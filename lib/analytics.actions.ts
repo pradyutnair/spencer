@@ -26,7 +26,7 @@ function calculatePercentageDifference(current: number, previous: number) {
     : 0;
 }
 
-export function fetchExpenditure(transactions: Transaction[], dateRange: DateRange, currency: string) {
+export function fetchExpenditure(transactions: Transaction[], dateRange: DateRange | undefined, currency: string) {
   const from = dateRange?.from || startOfMonth(new Date());
   const to = dateRange?.to || new Date();
   const { previousStart, previousEnd } = calculatePreviousPeriod(from, to);
@@ -41,7 +41,7 @@ export function fetchExpenditure(transactions: Transaction[], dateRange: DateRan
   };
 }
 
-export function fetchIncome(transactions: Transaction[], dateRange: DateRange, currency: string) {
+export function fetchIncome(transactions: Transaction[], dateRange: DateRange | undefined, currency: string) {
   const from = dateRange?.from || startOfMonth(new Date());
   const to = dateRange?.to || new Date();
   const { previousStart, previousEnd } = calculatePreviousPeriod(from, to);

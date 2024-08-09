@@ -1,13 +1,13 @@
 "use client";
-import Link from "next/link";
-import {FormEvent, useState} from 'react';
-import {Button} from "@/components/ui/button";
-import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card";
-import {Input} from "@/components/ui/input";
-import {Label} from "@/components/ui/label";
-import SignInWithGoogleButton from "@/components/buttons/SignInWithGoogleButton";
-import {Loader2} from 'lucide-react';
-import {signIn} from "@/lib/user.actions";
+import Link from 'next/link';
+import { FormEvent, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import SignInWithGoogleButton from '@/components/buttons/SignInWithGoogleButton';
+import { Loader2 } from 'lucide-react';
+import { signIn } from '@/lib/user.actions';
 
 export function LoginForm() {
     const [loading, setLoading] = useState(false);

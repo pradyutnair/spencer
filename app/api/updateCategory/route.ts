@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAdminClient } from "@/lib/appwrite";
-import { Query } from "appwrite";
+import { createAdminClient } from '@/lib/appwrite';
+import { Query } from 'appwrite';
 
 const { APPWRITE_DATABASE_ID, APPWRITE_TRANSACTION_COLLECTION_ID } = process.env;
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
-        Query.equal('$id', transactionId)
+        Query.equal('$id', transactionId),
       ]
     );
 
@@ -29,37 +29,44 @@ export async function POST(request: NextRequest) {
     const payee = result.Payee;
     const firstWord = payee.split(' ')[0];
 
-    // console.log('Current Transaction:', result);
+    console.log('Current Transaction:', result);
     // console.log('Payee:', payee);
     // console.log('First Word:', firstWord);
 
     // Query for all transactions with the same Payee
+    let query;
+    if (firstWord && firstWord.length > 1){
+      query = Query.startsWith('Payee', firstWord);
+    } else {
+      query = Query.contains('Payee', payee);
+    }
     const matchingTransactions = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
-      [
-        // Query.or([
-        //   Query.contains('Payee', payee),
-        //   Query.contains('Payee', firstWord)
-        //   ])
-        Query.startsWith('Payee', firstWord)
-      ]
+      [query, Query.limit(50000000000)]
     );
 
-    //console.log('Matching Transactions:', matchingTransactions);
+    //console.log('Matching transactions', matchingTransactions)
+    console.log('Matching Transactions Count:', matchingTransactions.documents.length);
+    console.log('Category:', category);
 
     // Update all matching transactions
-    const updatePromises = matchingTransactions.documents.map(transaction =>
-      database.updateDocument(
+    for (const document of matchingTransactions.documents) {
+      await database.updateDocument(
         APPWRITE_DATABASE_ID!,
         APPWRITE_TRANSACTION_COLLECTION_ID!,
-        transaction.$id,
+        document.$id,
         { category }
-      )
-    );
+      );
+    }
 
-    // Wait for all updates to complete
-    await Promise.all(updatePromises);
+    // Update the current transaction
+    await database.updateDocument(
+      APPWRITE_DATABASE_ID!,
+      APPWRITE_TRANSACTION_COLLECTION_ID!,
+      transactionId,
+      { category }
+    );
 
     return NextResponse.json({ message: 'Transactions updated successfully' });
   } catch (error) {

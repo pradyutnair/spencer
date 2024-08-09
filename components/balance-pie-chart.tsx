@@ -4,6 +4,7 @@ import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, Legend, TooltipItem } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getMainColor } from '@/lib/colourUtils';
+import { formatAmount } from '@/lib/utils';
 
 Chart.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -59,7 +60,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({ accountBalances, currency
   };
 
   const doughnutOptions = {
-    cutout: '70%',
+    cutout: '60%',
     plugins: {
       legend: {
         display: false
@@ -72,7 +73,7 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({ accountBalances, currency
         callbacks: {
           label: function(context: TooltipItem<'doughnut'>) {
             let label = context.parsed?.toString() || '';
-            label = `${label} ${currency}`;
+            label = `${formatAmount(Number(label))} ${currency}`;
             return label;
           }
         }
@@ -81,9 +82,9 @@ const DoughnutChart: React.FC<DoughnutChartProps> = ({ accountBalances, currency
   };
 
   return (
-    <div className="relative flex items-center justify-center w-72 h-72">
+    <div className="relative flex items-center justify-center w-80 h-80">
       <div className="absolute flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold">{totalBalance}</span>
+        <span className="text-2xl font-bold">{Math.round(totalBalance)}</span>
         <span className="text-muted-foreground text-sm">{currency}</span>
       </div>
       <Doughnut data={doughnutData} options={doughnutOptions} />

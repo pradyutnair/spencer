@@ -18,12 +18,12 @@ export const signIn = async (formData: FormData) => {
         console.log("FUNCTION signIn RESPONSE:", parseStringify(response));
 
         cookies().set("appwrite-session", response.secret, {
-            path: "/",
+            path: "/dashboard",
             httpOnly: true,
             secure: true,
         });
 
-        redirect("/");
+        redirect("/dashboard");
 
     } catch (error) {
         console.error('Error:', error);

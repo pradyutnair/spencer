@@ -1,12 +1,8 @@
 import { CalendarDateRangePicker } from '@/components/date-range-picker';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getLoggedInUser, getUserDetails } from '@/lib/user.actions';
-
-import CustomCard from '@/components/custom-card';
 import React from 'react';
 import SelectCurrency from '@/components/buttons/select-currency';
-import { TransactionProvider } from '@/hooks/transaction-context';
 import CustomCardWrapper from '@/components/custom-card';
 
 export default async function page() {

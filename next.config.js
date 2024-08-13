@@ -2,10 +2,7 @@
 const nextConfig = {
   images: {
     domains: ['utfs.io', 'storage.googleapis.com']
-  }
-};
-
-module.exports = {
+  },
   webpack(config) {
     // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule) =>
@@ -33,6 +30,6 @@ module.exports = {
 
     return config;
   }
-
-  // ...other config
 };
+
+module.exports = nextConfig;

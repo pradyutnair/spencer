@@ -6,7 +6,7 @@ import { useDateRangeStore } from '@/components/stores/date-range-store';
 import { getCurrencySymbol } from '@/lib/currency-mapping';
 import { transactionCategories } from '@/lib/transactionCategoryDefinitions';
 
-const renderActiveShape = (props) => {
+const renderActiveShape = (props: any) => {
   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
   const currencySymbol = getCurrencySymbol(payload.currency);
   return (
@@ -15,7 +15,7 @@ const renderActiveShape = (props) => {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius + 10}
+        outerRadius={outerRadius+10}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
@@ -50,7 +50,7 @@ export function CategoryPieChart({ transactions, currency }) {
     }).filter(t => selectedBank === "All Banks" || t.Bank === selectedBank);
 
     const categoryTotals = filteredTransactions.reduce((acc, transaction) => {
-      if (!transaction.exclude && transaction.category) {
+      if (!transaction.exclude && transaction.category && transaction.category !== "Income") {
         acc[transaction.category] = (acc[transaction.category] || 0) + Math.abs(transaction.amount);
       }
       return acc;
@@ -79,8 +79,8 @@ export function CategoryPieChart({ transactions, currency }) {
   };
 
   return (
-    <div className="flex flex-col h-full w-full justify-center">
-      <div className="flex items-center justify-center w-full h-full">
+    <div className="flex flex-col h-full w-full justify-center -mt-20">
+      <div className="flex items-center justify-center w-full h-96">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -89,8 +89,8 @@ export function CategoryPieChart({ transactions, currency }) {
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={80}  // Increased inner radius
-              outerRadius={140} // Increased outer radius
+              innerRadius={60}
+              outerRadius={100}
               fill="#8884d8"
               dataKey="value"
               onMouseEnter={onPieEnter}
@@ -103,7 +103,7 @@ export function CategoryPieChart({ transactions, currency }) {
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="justify-center flex flex-wrap">
+      <div className="justify-center flex flex-wrap -mt-16">
         <Select value={selectedBank} onValueChange={setSelectedBank}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select a bank" />

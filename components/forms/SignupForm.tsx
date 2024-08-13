@@ -3,15 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-// import { signup } from "@/lib/auth-actions";        THIS IS FOR SUPABASE
 import { signUpWithEmail } from '@/lib/user.actions';
-import SignInWithGoogleButton from '@/components/buttons/SignInWithGoogleButton'; // THIS IS FOR APPWRITE
+import SignInWithGoogleButton from '@/components/buttons/SignInWithGoogleButton';
 
-// Sign up form
 export function SignUpForm() {
-
     return (
-        <Card className="mx-auto max-w-sm">
+        <Card className="mx-auto w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl">
             <CardHeader>
                 <CardTitle className="text-xl">Sign Up</CardTitle>
                 <CardDescription>
@@ -21,7 +18,7 @@ export function SignUpForm() {
             <CardContent>
                 <form action="">
                     <div className="grid gap-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="first-name">First name</Label>
                                 <Input

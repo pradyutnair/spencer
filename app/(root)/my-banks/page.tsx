@@ -10,6 +10,7 @@ import { TransactionProvider, useTransactionContext } from '@/hooks/transaction-
 import BudgetComponent from '@/components/budget-progress';
 import { useTransactionStore } from '@/components/stores/transaction-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CategoryPieChart } from '@/components/category-pie-chart';
 
 const CACHE_KEY = 'bankData';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds

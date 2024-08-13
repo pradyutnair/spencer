@@ -5,9 +5,9 @@ import Image from 'next/image';
 const SignUpPage = () => {
     return (
         <div className="w-full min-h-screen">
-            <div className={"flex h-svh items-center justify-center flex-col"}>
+            <div className="flex h-svh items-center justify-center flex-col">
                 <div className="flex justify-center items-center mb-10">
-                    <Image src={"/icons/logo.svg"}
+                    <Image src={"/icons/logo-v1.svg"}
                            alt={"logo"}
                            width={30}
                            height={30}/>

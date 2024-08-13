@@ -163,5 +163,9 @@
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+
+  .halo {
+    box-shadow: 0 0 20px 10px rgba(128, 128, 128, 0.5);
+  }
 }
 

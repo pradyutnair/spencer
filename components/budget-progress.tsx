@@ -70,7 +70,8 @@ export default function BudgetComponent({ transactions, useColorScheme }: Compon
         transactionDate.getMonth() === currentMonth &&
         transaction.category &&
         !transaction.exclude &&
-        transaction.category !== 'Income' // Exclude Income category
+        transaction.category !== 'Income' && // Exclude Income category
+        transaction.amount < 0 // Only consider negative amounts as expenses
       ) {
         const amount = Math.abs(transaction.amount);
         acc[transaction.category] = (acc[transaction.category] || 0) + amount;
@@ -170,8 +171,6 @@ export default function BudgetComponent({ transactions, useColorScheme }: Compon
 
             const progressColor = useColorScheme ? categoryInfo.darkTextClass : 'black';
             const textColor = useColorScheme ? categoryInfo.darkTextClass : 'light:text-black dark:text-white';
-
-
 
             return (
               <div key={categoryName} className="grid gap-3">

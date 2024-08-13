@@ -180,7 +180,7 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
           <BudgetComponent transactions={transactions} useColorScheme={false} />
           <div className="absolute top-2 right-2 flex items-center justify-center">
             <Link href={"/my-banks"}>
-              <ExternalLinkIcon className="h-4 w-5 mr-3 mt-3 text-muted-foreground" />
+              <ExternalLinkIcon className="h-4 w-5 mr-3 mt-4 text-muted-foreground" />
             </Link>
           </div>
         </div>

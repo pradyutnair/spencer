@@ -53,6 +53,7 @@
     "dayjs": "^1.11.11",
     "eslint": "8.48.0",
     "eslint-config-next": "^14.0.1",
+    "framer-motion": "^11.3.24",
     "lucide-react": "^0.383.0",
     "next": "^14.2.3",
     "next-auth": "^5.0.0-beta.18",
@@ -80,6 +81,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "prettier": "3.0.3",

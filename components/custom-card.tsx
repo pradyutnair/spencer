@@ -80,13 +80,13 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
   }
 
   return (
-    <div className={"font-inter"}>
+    <div className={"font-inter dark:text-white light:text-black"}>
       <div className="grid grid-cols-1 pb-8 pt-3 ">
         <Card className="col-span-4">
           <CardHeader>
             <div className="flex flex-row content-evenly justify-between pb-2">
               <CardDescription>
-                <b className="pl-1 text-xl font-semibold text-white lg:text-4xl">
+                <b className="pl-1 text-xl font-semibold lg:text-4xl dark:text-white light:text-black">
                   {currencySymbol} {showExpenses ? -1 * currentExpenditure : currentIncome}
                 </b>
               </CardDescription>

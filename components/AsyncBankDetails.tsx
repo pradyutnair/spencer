@@ -1,8 +1,7 @@
-'use client';
 import React, { useEffect } from 'react';
 import BankCard from '@/components/BankCard';
 import { useBankStore } from '@/components/stores/bank-balances-store';
-import { BankData, Transaction } from '@/types/index';
+import { BankData } from '@/types/index';
 import BankCardSkeleton from '@/components/skeletons/BankCardSkeleton';
 
 const CACHE_KEY = 'bankData';
@@ -49,10 +48,13 @@ const AsyncMyBanks = () => {
     return <SkeletonFallback />;
   }
 
+  const uniqueRequisitionIds = [...new Set(bankData.map(data => data.requisitionId))];
+  const gridCols = uniqueRequisitionIds.length;
+
   return (
     <div className="flex w-full max-w-full">
       <div className="w-full">
-        <div className="flex">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-${gridCols} gap-6`}>
           {bankData && bankData.map(({ requisitionId, bankName, bankLogo, balances, reqCreated }) => (
             <BankCard
               key={requisitionId}
@@ -86,6 +88,5 @@ const SkeletonFallback = () => (
     </div>
   </section>
 );
-
 
 export default AsyncMyBanks;

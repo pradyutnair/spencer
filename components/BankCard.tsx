@@ -20,13 +20,13 @@ interface CreditCardProps {
 }
 
 const BankCard = ({
-                    requisitionId,
-                    balances,
-                    showBalance = true,
-                    bankName,
-                    bankLogo = '/icons/mastercard.svg',
-                    reqCreated
-                  }: CreditCardProps) => {
+  requisitionId,
+  balances,
+  showBalance = true,
+  bankName,
+  bankLogo = '/icons/mastercard.svg',
+  reqCreated
+}: CreditCardProps) => {
   const aggregatedBalances = balances.reduce((acc: { [key: string]: number }, balance) => {
     acc[balance.currency] = (acc[balance.currency] || 0) + parseFloat(balance.amount);
     return acc;
@@ -36,6 +36,7 @@ const BankCard = ({
 
   const displayBankName = bankName.split(/[^a-zA-Z0-9 ]/g)[0].toLowerCase().replace(/^\w/, c => c.toUpperCase());
   let daysToExpire = Math.ceil((new Date(reqCreated).getTime() + 120 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
+  //daysToExpire = 0
   let expiryDays = daysToExpire > 0 ? `${daysToExpire} days` : 'Expired';
 
   let formattedDaysToExpire: string | number | boolean | JSX.Element | Iterable<ReactNode> | PromiseLikeOfReactNode | null | undefined;
@@ -86,27 +87,17 @@ const BankCard = ({
           <Image src={bankLogo} width={45} height={32} alt="bank logo" className="ml-2 mr-3.5" />
         </div>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {nonZeroBalances.map(([currency, amount], index) => (
-              <div className="flex flex-col sm:flex-row items-center gap-2" key={index}>
-                <div className="text-sm font-medium text-gray-500 dark:text-gray-400">{currency}</div>
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
-                  {showBalance ? `${amount.toFixed(2)}` : 'Hidden'}
+              <div key={index} className="flex flex-col gap-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{currency}:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-50">{showBalance ? `${amount.toFixed(2)}` : 'Hidden'}</span>
                 </div>
-                <div className="flex items-center text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Validity
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="ml-1 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>The number of days until access to transaction data from {displayBankName} expires.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                <div className="flex justify-between">
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Validity:</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-50">{formattedDaysToExpire}</span>
                 </div>
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-50"> {formattedDaysToExpire}</div>
               </div>
             ))}
           </div>

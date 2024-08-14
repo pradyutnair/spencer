@@ -44,7 +44,8 @@ export async function POST(request: Request) {
       {
         name: 'findSpecificTransaction',
         description: `Find a specific transaction by payee and booking date. Call it if asked for details of a particular transaction or if the user asks what they have spent on a particular date (without any payee information). Remember that if the user provides relative dates like "yesterday", "two days ago", "last Monday", etc., 
-        you must first convert that to an exact date relative to ${currentDateTime} and then pass that as an argument. If the user mentions relative time periods such as 'last month', 'last week', etc., then you must convert that to a startDate and endDate relative to ${currentDateTime} and then pass them as an arguments.`,
+        you must first convert that to an exact date relative to ${currentDateTime} and then pass that as an argument. If the user mentions relative time periods such as 'last month', 'last week', 'this month' etc., then you must convert that to a startDate and endDate relative to ${currentDateTime} and then pass them as an arguments.
+        If the user does not provide a clear date range, set the startDate to '2021-07-01' and endDate to the current date.`,
         parameters: {
           type: 'object',
           properties: {
@@ -94,7 +95,7 @@ export async function POST(request: Request) {
       },
       {
         name: 'getExpenseRate',
-        description: `Calculate the expense (average daily spend) rate for a given date range. Call this if the user asks for expense rate. If no date range is provided, use the current month. The current date is ${currentDateTime}.`,
+        description: `Calculate the expense (average daily spend) rate for a given date range. Call this if the user asks for expense rate. The current date is ${currentDateTime}. If no date range is provided, set the startDate to the first of the current month and endDate to the last day of the current month. `,
         parameters: {
           type: 'object',
           properties: {
@@ -186,7 +187,7 @@ export async function POST(request: Request) {
     const initialResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You are a helpful assistant that answers questions about financial transactions. The current date is ${currentDateTime}. Do not answer questions about anything else apart from transaction data. If the question is not about personal finances, reply "I am a personal finance assistant, I cannot help you with your query."` },
+        { role: 'system', content: `You are a helpful assistant named Compass that answers questions about financial transactions. The current date is ${currentDateTime}. Do not answer questions about anything else apart from transaction data. Be friendly and respond to greetings but if the question is not about personal finances, reply "I am a personal finance assistant, I cannot help you with your query."` },
         { role: 'user', content: userInput },
       ],
       functions,

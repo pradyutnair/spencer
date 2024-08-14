@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useTransactionStore } from '@/components/stores/transaction-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { getLoggedInUser, getUserDetails } from '@/lib/user.actions';
 import { generateGradient } from '@/lib/colourUtils';
 
@@ -94,12 +94,13 @@ export default function ChatComponent() {
   const gradientBackground = generateGradient(user.name.split(' ')[0], user.name.split(' ')[1]);
 
   return (
-    <Card className="max-w-xl rounded-2xl w-full mx-auto flex flex-col h-full relative bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">      <CardHeader>
+    <Card className="max-w-xl rounded-2xl w-full mx-auto flex flex-col h-96 relative bg-zinc-30 from-zinc-900 dark:bg-zinc-950 dark:hover:bg-gradient-to-br">
+      <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Assistant</CardTitle>
         </div>
       </CardHeader>
-      <div className="absolute top-3 right-3 mr-2">
+      <div className="absolute top-3 right-3">
         <Button variant="ghost" onClick={handleReset} aria-label="Reset chat" className="p-1">
           <ResetIcon className="w-4 h-4 text-muted-foreground" />
         </Button>
@@ -157,9 +158,9 @@ export default function ChatComponent() {
             <Button
               variant="ghost"
               className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("Find a transaction to Openai on the 2nd of August 2024")}
+              onClick={() => handleSuggestedQuestion("Find a transaction from Openai on the 2nd of August 2024")}
             >
-              Find a transaction to Openai on the 2nd of August 2024
+              Find a transaction from Openai on the 2nd of August 2024
             </Button>
             <Button
               variant="ghost"
@@ -168,9 +169,23 @@ export default function ChatComponent() {
             >
               List my recent transactions
             </Button>
+            <Button
+              variant="ghost"
+              className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
+              onClick={() => handleSuggestedQuestion("What is my current expense rate?")}
+            >
+              What is my current expense rate?
+            </Button>
+            <Button
+              variant="ghost"
+              className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
+              onClick={() => handleSuggestedQuestion("What is my predicted expenditure for next month?")}
+            >
+              What is my predicted expenditure for next month?
+            </Button>
           </div>
         )}
-        <div className="relative">
+        <div className="relative font-plex-mono">
           <Textarea
             placeholder="Ask Compass a question"
             name="message"

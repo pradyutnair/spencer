@@ -12,5 +12,3 @@ export const transactionCategories = [
   { name: "Utilities", lightColor: "#605d5d", darkColor: "#433f3f", lightTextClass: "text-black", darkTextClass: "dark:text-white", categoryColor: "#ffffff", categoryColorText: "white" },
   { name: "Other", lightColor: "#f0f0f0", darkColor: "#949494", lightTextClass: "text-gray-600", darkTextClass: "dark:text-gray-400", categoryColor: "#9ca3af", categoryColorText: "gray-400" }
 ];
-
-808080

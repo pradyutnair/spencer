@@ -81,10 +81,17 @@ export const findSpecificTransaction = (
   let start: Date, end: Date;
   let filteredTransactions;
 
+  console.log('bookingDate', bookingDate);
+  console.log('startDate', startDate);
+  console.log('endDate', endDate);
+
   if (startDate && endDate) {
     // Convert startDate and endDate to Date objects
     const start = new Date(startDate);
     const end = new Date(endDate);
+
+    console.log('start', start);
+    console.log('end', end);
 
     filteredTransactions = transactions.filter(transaction => {
       const transactionDate = new Date(transaction.bookingDate);
@@ -115,7 +122,7 @@ export const findSpecificTransaction = (
 
   if (filteredTransactions.length === 0) {
     if (startDate && endDate) {
-    return `No transaction found${Payee ? ` for ${Payee}` : ''} between ${format(start, 'dd MMM yyyy')} and ${format(end, 'dd MMM yyyy')}.`;
+    return `No transaction found${Payee ? ` for ${Payee}` : ''} between ${format(new Date(startDate), 'dd MMM yyyy')} and ${format(new Date(endDate), 'dd MMM yyyy')}.`
   } else {
     return `No transaction found${Payee ? ` for ${Payee}` : ''} on ${format(new Date(bookingDate), 'dd MMM yyyy')}.`
     }

@@ -25,17 +25,17 @@ export const GET = async (req: NextRequest) => {
             // Concatenate the transactions to the allTransactions array
             allTransactions = allTransactions.concat(transactions);
 
-            // Schedule getGCTransactions to run in the background
-            setImmediate(async () => {
-                try {
-                    await getGCTransactions({
-                        requisitionIds: [requisitionId],
-                        bankNames: [bankName],
-                    });
-                } catch (error) {
-                    console.error('Error updating transactions:', error);
-                }
-            });
+            // // Schedule getGCTransactions to run in the background
+            // setImmediate(async () => {
+            //     try {
+            //         await getGCTransactions({
+            //             requisitionIds: [requisitionId],
+            //             bankNames: [bankName],
+            //         });
+            //     } catch (error) {
+            //         console.error('Error updating transactions:', error);
+            //     }
+            // });
         }
 
         // Return the transactions as the response body

@@ -18,7 +18,7 @@ export const signIn = async (formData: FormData) => {
         console.log("FUNCTION signIn RESPONSE:", parseStringify(response));
 
         cookies().set("appwrite-session", response.secret, {
-            path: "/dashboard",
+            path: "/",
             httpOnly: true,
             secure: true,
         });

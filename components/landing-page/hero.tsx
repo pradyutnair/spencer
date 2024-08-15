@@ -5,6 +5,9 @@ import { ArrowRightIcon } from '@radix-ui/react-icons';
 import Link from 'next/link';
 
 import { Button } from '../ui/button';
+import { TypewriterEffect } from '../typewriter';
+import { header } from '@/constants/data'
+
 
 export function Hero() {
   return (
@@ -21,11 +24,12 @@ export function Hero() {
             </span>
           </a>
         </div>
-        <div className='flex justify-center'>
-          <h1 className='text-5xl sm:text-6xl font-bold tracking-tight text-center mt-8 inline-flex max-w-sm'>Navigate through your expenses smarter</h1>
+        <div className='flex justify-center items-center'>
+          <TypewriterEffect words={header} className='text-5xl sm:text-6xl font-bold text-center ' />
+          {/* <h1 className='text-5xl sm:text-6xl font-bold tracking-tight text-center mt-8 inline-flex max-w-sm'>Navigate through your expenses smarter</h1> */}
         </div>
         <div className='flex justify-center'>
-          <p className='text-center text-xl mt-8'>
+          <p className='text-center text-xl mt-12'>
             Stay on top of your spending with ease and accuracy with Compass™,
             your smart expenditure tracking app that leverages AI assistance for
             precise and effortless financial calculations.

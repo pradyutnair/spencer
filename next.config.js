@@ -1,7 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['utfs.io', 'storage.googleapis.com']
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**'
+      }
+    ],
+    domains: [
+      'utfs.io',
+      'storage.googleapis.com',
+      'drive.google.com',
+      'unsplash.com'
+    ]
   },
   webpack(config) {
     // Grab the existing rule that handles SVG imports

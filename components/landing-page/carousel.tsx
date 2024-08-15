@@ -1,35 +1,98 @@
-import Image from "next/image"
-import Visa from "../public/icons/visa.svg"
-import { Testimonial } from "./testimonial"
+"use client";
 
+import React, { useEffect, useState } from "react";
+import { InfiniteMovingCards } from "../infinite-moving-cards";
+import { TextGenerateEffect } from "../text-generator-effect";
+import { words } from "@/constants/data";
 
-const comments = [
-    {
-        picture: '../public/yechach.png',
-        name: 'Yeshas',
-
-    },
-    {
-        title: 'Feature 1',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-    },
-    {
-
-        title: 'Feature 1',
-        description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'
-    }
-]
-
-export const Carousel = () => {
-
+export function Carousel() {
     return (
-        <div className="text-white">
-            <div className="container">
-                <h2>What the people have to say</h2>
-                <div>
-                    {/* <Testimonial picture=", name={} */}
-                </div>
+        <div className=" pb-20 bg-gradient-to-b from-zinc-500 via-zinc-600 to-zinc-950">
+            <div className="flex justify-center font-bold sm:text-6xl pb-10">
+                <TextGenerateEffect className='font-bold text-6xl' duration={4} words={"Don't take our word for it. Take theirs"} filter={false} />
             </div>
-        </div>
-    )
+            <InfiniteMovingCards
+                items={testimonials}
+                direction="right"
+                speed="slow"
+            />
+        </div >
+    );
 }
+
+const testimonials = [
+    {
+        name: "Yeshas Paramesh",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1bDzHn2OWkQFbEWO-04wyEDRZkOu06Q3U",
+        handle: "@yeshas_paramesh",
+        verified: true,
+        quote: "This is so ingenious and good!",
+    },
+    {
+        name: "Tanishq Rao",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1bKZ0xUyS-YaB0F_MswowSqhnBlQ_gKKA",
+        handle: "@arcticbugbear",
+        verified: true,
+        quote: "Omg, this is so cool!",
+    },
+    {
+        name: "Riteesh A",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1b7E4Mk7Wf1TyT35N-Fe-Z_yClVFvYyS6",
+        handle: "@kamikazayy",
+        verified: true,
+        quote: "this is absolutely amazing",
+    },
+    {
+        name: "Saakshi Vivek",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1bA8G29vt1YhrE77gLpKf9Dg3jXzuIjqV",
+        handle: "@saaki",
+        verified: true,
+        quote: "Awesome man, looks amazing 🔥",
+    },
+    {
+        name: "Pradyut Nair",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1bBbWUviW2-jIZ3DORKluhKQXZarQrQR5",
+        handle: "@pradyutnair",
+        verified: true,
+        quote: "Love the dashboard UI🖤",
+    },
+    {
+        name: "Shane Mathias",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1bNj6Q61ArBGWDHfsIneFsNe3VKdCJxWt",
+        handle: "@mathy777",
+        verified: true,
+        quote:
+            "I'd use it",
+    },
+    {
+        name: "Jash V Gandhi",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1awwKdvqILB-J9YcREnQBA0_xTFRWKAtf",
+        handle: "@jashvgandhi",
+        verified: true,
+        quote: "so ready! 🙌",
+    },
+    {
+        name: "Adhit Ganapathy",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1b6My5Fz4eEKobfih_3r6weyScvTjGYnJ",
+        handle: "@biggannu",
+        verified: true,
+        quote: `Just found my new favorite finance app👏`,
+    },
+    {
+        name: "Gokul",
+        avatarUrl:
+            "https://drive.google.com/uc?export=view&id=1sHNK7ALSI9FGkTfP0-sUWXfm0z-m4j9z",
+        handle: "@KyTechInc",
+        verified: true,
+        quote: "🖤 Awesome work. just love it.",
+    },
+
+];

@@ -8,6 +8,53 @@ export type User = {
   verified: boolean;
   status: string;
 };
+
+export const header = [
+  {
+    text: 'Navigate'
+  },
+  {
+    text: 'through'
+  },
+  {
+    text: 'your'
+  },
+  {
+    text: 'expenses'
+  },
+  {
+    text: 'smarter.',
+    className: 'text-blue-500 dark:text-blue-500'
+  }
+];
+
+export const words = [
+  {
+    text: "Don't"
+  },
+  {
+    text: 'take'
+  },
+  {
+    text: 'our'
+  },
+  {
+    text: 'word'
+  },
+  {
+    text: 'for'
+  },
+  {
+    text: 'it.'
+  },
+  {
+    text: 'Take'
+  },
+  {
+    text: 'theirs'
+  }
+];
+
 export const users: User[] = [
   {
     id: 1,

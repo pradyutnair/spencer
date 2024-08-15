@@ -9,6 +9,7 @@ const SignUpPage = () => {
                 <div className="flex justify-center items-center mb-10">
                     <Image src={"/icons/logo-v1.svg"}
                            alt={"logo"}
+                           className={"halo rounded-lg"}
                            width={30}
                            height={30}/>
                     <div className="font-ibm-plex-serif text-2xl font-bold ml-2 px-1">Compass</div>

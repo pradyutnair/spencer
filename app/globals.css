@@ -164,6 +164,15 @@
     background: transparent;
   }
 
+  /* Add this CSS to make the overflow invisible */
+  .invisible-scroll {
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .invisible-scroll::-webkit-scrollbar {
+    display: none; /* Safari and Chrome */
+  }
+
   .halo {
     box-shadow: 0 0 20px 10px rgba(128, 128, 128, 0.5);
   }

@@ -78,7 +78,7 @@ const MyBanks = () => {
                   <SelectCurrency />
                 </div>
             </div>
-            <div className="w-full md:w-1/2 flex justify-center mt-8 md:mt-0 h-full">
+            <div className="w-full md:w-1/2 flex justify-center mt-8 md:mt-0 h-full max-h-[70vh] overflow-y-auto scrollbar-thin">
               <BudgetComponent transactions={transactions} useColorScheme={true} />
             </div>
           </div>

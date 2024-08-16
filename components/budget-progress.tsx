@@ -161,7 +161,7 @@ export default function BudgetComponent({ transactions, useColorScheme }: Compon
 
   return (
     <>
-      <Card className="w-full max-w-2xl dark:hover:bg-gradient-to-br from-zinc-900 dark:bg-zinc-950 overflow-y-auto">
+      <Card className="w-full max-w-2xl dark:hover:bg-gradient-to-br from-zinc-900 dark:bg-zinc-950 overflow-y-auto invisible-scroll">
         <CardHeader>
           <CardTitle className="">Monthly Budget</CardTitle>
         </CardHeader>

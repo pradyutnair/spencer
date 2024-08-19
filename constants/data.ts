@@ -24,7 +24,7 @@ export const header = [
   },
   {
     text: 'smarter.',
-    className: 'text-blue-500 dark:text-blue-500'
+    className: 'text-red-500 dark:text-red-500'
   }
 ];
 

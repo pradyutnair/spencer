@@ -8,7 +8,6 @@ import { TaskDragData } from '@/components/kanban/task-card';
 import { subMonths, subWeeks, subYears } from 'date-fns';
 import { BankData } from '@/types/index';
 
-
 type DraggableData = ColumnDragData | TaskDragData;
 
 export function cn(...inputs: ClassValue[]) {
@@ -265,7 +264,5 @@ export const createAccountBalanceBreakdown = (
     return { bankName, totalBalance, bankLogo };
   });
 };
-
-
 
 

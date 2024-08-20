@@ -3,8 +3,12 @@ import { Transaction } from '@/types/index';
 import { Query } from 'node-appwrite';
 import { wordsToRemove } from './wordsToRemove';
 
-const { APPWRITE_DATABASE_ID, APPWRITE_REQ_COLLECTION_ID,
-  APPWRITE_TRANSACTION_COLLECTION_ID, APPWRITE_USER_COLLECTION_ID } = process.env;
+const {
+  APPWRITE_DATABASE_ID,
+  APPWRITE_REQ_COLLECTION_ID,
+  APPWRITE_TRANSACTION_COLLECTION_ID,
+  APPWRITE_USER_COLLECTION_ID
+} = process.env;
 
 export async function pushTransactionsDB(transaction: Transaction, requisitionId: string) {
   // Create a new admin client

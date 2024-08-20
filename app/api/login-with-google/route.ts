@@ -1,6 +1,6 @@
 // app/api/login-with-google/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { Client, Account } from 'appwrite';
+import { Account, Client } from 'appwrite';
 import { OAuthProvider } from 'node-appwrite';
 
 export async function GET(request: NextRequest) {
@@ -25,6 +25,9 @@ export async function GET(request: NextRequest) {
     }
   } catch (error) {
     console.error('Error initiating OAuth session:', error);
-    return NextResponse.json({ message: 'Error initiating OAuth session' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Error initiating OAuth session' },
+      { status: 500 }
+    );
   }
 }

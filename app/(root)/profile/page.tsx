@@ -1,7 +1,14 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,12 +18,22 @@ import { generateGradient } from '@/lib/colourUtils';
 import AsyncMyBanks from '@/components/AsyncBankDetails';
 import { format } from 'date-fns';
 
-
 export default function ProfilePage() {
-  const [user, setUser] = useState({ firstName: "", lastName: "", email: "", avatarUrl: "", $id: "", $createdAt: "" });
-  const [userId, setUserId] = useState("");
+  const [user, setUser] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    avatarUrl: '',
+    $id: '',
+    $createdAt: ''
+  });
+  const [userId, setUserId] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUser, setEditedUser] = useState({ firstName: "", lastName: "", email: "" });
+  const [editedUser, setEditedUser] = useState({
+    firstName: '',
+    lastName: '',
+    email: ''
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,7 +41,11 @@ export default function ProfilePage() {
       const userData = await getUserDetails(user.$id); // Pulls the user details from the database
       setUser(userData);
       setUserId(userData.userId);
-      setEditedUser({ firstName: userData.firstName, lastName: userData.lastName, email: userData.email });
+      setEditedUser({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        email: userData.email
+      });
     };
     fetchUser();
   }, []);
@@ -35,7 +56,10 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     // Update the user name in the database only if editerUser is different from the current user
-    if (editedUser.firstName === user.firstName && editedUser.lastName === user.lastName) {
+    if (
+      editedUser.firstName === user.firstName &&
+      editedUser.lastName === user.lastName
+    ) {
       setIsEditing(false);
       return;
     }
@@ -43,12 +67,12 @@ export default function ProfilePage() {
       const response = await fetch('/api/editUserName', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           userId: userId,
-          newUserName: `${editedUser.firstName} ${editedUser.lastName}`,
-        }),
+          newUserName: `${editedUser.firstName} ${editedUser.lastName}`
+        })
       });
 
       if (!response.ok) {
@@ -79,86 +103,107 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-h-screen w-full flex flex-col bg-background mt-4">
-      <div className="flex-grow w-full p-4 sm:p-6 lg:p-8 overflow-auto">
+    <div className="mt-4 flex max-h-screen w-full flex-col bg-background">
+      <div className="w-full flex-grow overflow-auto p-4 sm:p-6 lg:p-8">
         <Card className="mb-8">
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <Avatar className="h-20 w-20" style={{ background: gradientBackground }}>
+              <Avatar
+                className="h-20 w-20"
+                style={{ background: gradientBackground }}
+              >
                 <AvatarImage src={user.avatarUrl} />
-                <AvatarFallback className="bg-transparent text-2xl" style={{ background: gradientBackground }}>
-                  {user.firstName[0]}{user.lastName[0]}
+                <AvatarFallback
+                  className="bg-transparent text-2xl"
+                  style={{ background: gradientBackground }}
+                >
+                  {user.firstName[0]}
+                  {user.lastName[0]}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle className="text-2xl ml-4">{`${user.firstName} ${user.lastName}`}</CardTitle>
+                <CardTitle className="ml-4 text-2xl">{`${user.firstName} ${user.lastName}`}</CardTitle>
                 <CardDescription className="ml-4 mt-2 opacity-65">{`Member since: ${memberSinceDate}`}</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-
-          </CardContent>
+          <CardContent></CardContent>
         </Card>
 
         {/*<Tabs defaultValue="personal" className="w-full flex-grow flex flex-col max-h-full h-24">*/}
-        <Tabs defaultValue="personal" className="w-full flex-grow flex flex-col max-h-full">
-          <TabsList className="flex w-full overflow-x-auto mb-8 h-12">
-            <TabsTrigger value="personal" className="flex-1 min-w-max rounded-sm h-10">Personal Information</TabsTrigger>
-            <TabsTrigger value="billing" className="flex-1 min-w-max rounded-sm h-10">Billing Information</TabsTrigger>
-            <TabsTrigger value="bank" className="flex-1 min-w-max rounded-sm h-10">Bank Information</TabsTrigger>
+        <Tabs
+          defaultValue="personal"
+          className="flex max-h-full w-full flex-grow flex-col"
+        >
+          <TabsList className="mb-8 flex h-12 w-full overflow-x-auto">
+            <TabsTrigger
+              value="personal"
+              className="h-10 min-w-max flex-1 rounded-sm"
+            >
+              Personal Information
+            </TabsTrigger>
+            <TabsTrigger
+              value="billing"
+              className="h-10 min-w-max flex-1 rounded-sm"
+            >
+              Billing Information
+            </TabsTrigger>
+            <TabsTrigger
+              value="bank"
+              className="h-10 min-w-max flex-1 rounded-sm"
+            >
+              Bank Information
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="personal" className="flex-grow">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Personal Information</CardTitle>
-                      <CardDescription className="flex justify-start mt-2 opacity-75">
-                        {isEditing ? 'Update your personal information below. Click save when you\'re done.' : 'View your details.'}
-                      </CardDescription>
-                    </div>
-                    {!isEditing && (
-                      <Button onClick={handleEdit}>Edit Profile</Button>
-                    )}
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>Personal Information</CardTitle>
+                    <CardDescription className="mt-2 flex justify-start opacity-75">
+                      {isEditing
+                        ? "Update your personal information below. Click save when you're done."
+                        : 'View your details.'}
+                    </CardDescription>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex space-x-4">
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        value={isEditing ? editedUser.firstName : user.firstName}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        value={isEditing ? editedUser.lastName : user.lastName}
-                        onChange={handleInputChange}
-                        disabled={!isEditing}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                  {!isEditing && (
+                    <Button onClick={handleEdit}>Edit Profile</Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex space-x-4">
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input
-                      id="email"
-                      value={user.email}
-                      disabled
+                      id="firstName"
+                      value={isEditing ? editedUser.firstName : user.firstName}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
                     />
                   </div>
-                </CardContent>
-                {isEditing && (
-                  <CardFooter>
-                    <Button onClick={handleSave}>Save changes</Button>
-                  </CardFooter>
-                )}
-              </Card>
+                  <div className="flex-1 space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      value={isEditing ? editedUser.lastName : user.lastName}
+                      onChange={handleInputChange}
+                      disabled={!isEditing}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" value={user.email} disabled />
+                </div>
+              </CardContent>
+              {isEditing && (
+                <CardFooter>
+                  <Button onClick={handleSave}>Save changes</Button>
+                </CardFooter>
+              )}
+            </Card>
           </TabsContent>
           <TabsContent value="billing">
             <Card>

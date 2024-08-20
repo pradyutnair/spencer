@@ -1,35 +1,38 @@
-"use client";
-import { BackgroundGradient } from "../background-gradient";
+'use client';
+import React from 'react';
+import { BackgroundGradient } from '../background-gradient';
+import { Step } from '@/components/landing-page/special-card';
 
 export const PackagesComponent = () => {
-    return (
-        <div className="mt-28 pb-28">
-            <h1 className="text-center text-5xl sm:text-6xl font-bold">
-                Pricing
-            </h1>
-            <div className="container py-10 px-4 sm:px-12 lg:px-[calc(500px)]">
-                <BackgroundGradient className="rounded-[22px] p-4 sm:p-6 bg-white dark:bg-[#120d1d]">
-                    <div className="text-[#9967FF] text-center sm:text-left">Basic Plan</div>
-                    <div className="text-5xl sm:text-6xl my-5 font-bold flex items-baseline justify-center sm:justify-start">
-                        <div className="flex items-baseline">
-                            <sup className="text-2xl sm:text-3xl font-light align-top">€</sup>
-                            <span className="text-5xl sm:text-6xl font-bold">9.99</span>
-                            <span className="text-xl sm:text-2xl font-light opacity-65 ml-2">/ month</span>
-                        </div>
-                    </div>
-                    <div className="pt-2 pb-4 font-semibold opacity-60 text-center sm:text-left">
-                        One singular plan for all your needs
-                    </div>
-                    <button className="w-full inline-flex h-12 animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#351561,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-white/50 transition-colors transition hover:text-white">
-                        Purchase
-                    </button>
-                    <ul className="py-6 font-normal text-center sm:text-left">
-                        <li className="pb-2">First Feature</li>
-                        <li className="pb-2">Second Feature</li>
-                        <li className="pb-2">24/7 customer support</li>
-                    </ul>
-                </BackgroundGradient>
-            </div>
+  return (
+    <div className="flex flex-col items-center p-4 sm:p-10 mt-28 pb-28">
+      <h1 className="text-center text-5xl font-bold sm:text-6xl mb-8">Pricing</h1>
+      <BackgroundGradient className="rounded-[22px] max-w-sm w-full p-4 sm:p-10 bg-white dark:bg-[#120d1d]">
+        <div className="text-center text-[#9967FF] sm:text-left mt-4">
+          Basic Plan
         </div>
-    );
+        <div className="my-5 flex items-baseline justify-center text-5xl font-bold sm:justify-start sm:text-6xl">
+          <div className="flex items-baseline">
+            <sup className="align-top text-2xl font-light sm:text-3xl">€</sup>
+            <span className="text-5xl font-bold sm:text-6xl">9.99</span>
+            <span className="ml-2 text-xl font-light opacity-65 sm:text-2xl">
+              / month
+            </span>
+          </div>
+        </div>
+        <div className="pb-4 pt-2 text-center font-semibold opacity-60 sm:text-left">
+          One singular plan for all your needs
+        </div>
+        <ul className="list-none mt-2 mb-8 opacity-75 space-y-2 font-light">
+          <Step title="Personal AI Financial Assistant" />
+          <Step title="Unlimited secure bank connections" />
+          <Step title="Expense tracking and automated reports" />
+        </ul>
+        <button
+          className="inline-flex h-12 w-full animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#351561,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-white/50 transition transition-colors hover:text-white">
+          Purchase
+        </button>
+      </BackgroundGradient>
+    </div>
+  );
 };

@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
 import { transactionCategories } from '@/lib/transactionCategoryDefinitions';
 import { Transaction } from '@/types/index';
 import { formatAmount } from '@/lib/utils';
 import { getLoggedInUser } from '@/lib/user.actions';
-import { Button } from "@/components/ui/button"; // Assuming you're using a button component
+import { Button } from '@/components/ui/button'; // Assuming you're using a button component
 import {
   Select,
   SelectContent,
@@ -14,8 +14,8 @@ import {
   SelectItem,
   SelectLabel,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue
+} from '@/components/ui/select';
 
 interface ComponentProps {
   transactions: Transaction[];

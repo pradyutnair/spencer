@@ -1,14 +1,13 @@
 'use client';
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, ReactNode, useContext, useState } from 'react';
 import { DateRange } from 'react-day-picker';
-
 
 export const DateRangeContext = createContext<{
   dateRange: DateRange | undefined;
   setDateRange: React.Dispatch<React.SetStateAction<DateRange | undefined>>;
 }>({
   dateRange: undefined,
-  setDateRange: () => {},
+  setDateRange: () => {}
 });
 
 export const DateRangeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {

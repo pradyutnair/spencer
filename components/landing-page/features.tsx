@@ -1,29 +1,32 @@
-import { BanknoteIcon, CoffeeIcon } from "lucide-react";
-import { Feature } from "./feature";
+import { Feature } from './feature';
+import { BrainIcon, ShieldIcon, DollarSignIcon } from 'lucide-react';
 
 const features = [
   {
-    title: "Feature 1",
+    title: 'AI Assistant',
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      'A transparent and secure AI assistant that provides insights without storing or sharing any financial information.',
+    icon: BrainIcon
   },
   {
-    title: "Feature 1",
+    title: 'Privacy',
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+      'Your bank connections can never be used to make or receive payments, ensuring your money remains safe.',
+    icon: ShieldIcon
   },
   {
-    title: "Feature 1",
+    title: 'Budgeting and Expense Management',
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-  },
+      'Manage your finances with automatic categorization, balance overviews, and more.',
+    icon: DollarSignIcon
+  }
 ];
 
 export const Features = () => {
   return (
     <div className="text-white py-[72px] sm:py-[90px]">
-      <div className="container">
-        <h2 className="text-center font-extrabold text-6xl tracking-tighter bg-clip-text drop-shadow-lg opacity-100">
+      <div className="container flex flex-col items-center">
+        <h2 className="text-center font-extrabold text-4xl sm:text-6xl tracking-tighter drop-shadow-lg opacity-100 md:stroke-white stroke-2">
           All you need
         </h2>
         <div className="max-w-lg mx-auto">
@@ -31,9 +34,9 @@ export const Features = () => {
             Find all the features you need in one place
           </p>
         </div>
-        <div className="mt-16 flex flex-col sm:flex-row gap-4">
-          {features.map(({ title, description }) => (
-            <Feature title={title} description={description} key={title} />
+        <div className="mt-12 flex flex-wrap gap-2 sm:gap-4 lg:gap-6 justify-center">
+          {features.map(({ title, description, icon }) => (
+            <Feature title={title} description={description} icon={icon} key={title} />
           ))}
         </div>
       </div>

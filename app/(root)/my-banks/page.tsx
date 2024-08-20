@@ -6,11 +6,9 @@ import { useCurrencyStore } from '@/components/stores/currency-store';
 import { useBankStore } from '@/components/stores/bank-balances-store';
 import { createAccountBalanceBreakdown } from '@/lib/utils';
 import DoughnutChart from '@/components/balance-pie-chart';
-import { TransactionProvider, useTransactionContext } from '@/hooks/transaction-context';
+import { TransactionProvider } from '@/hooks/transaction-context';
 import BudgetComponent from '@/components/budget-progress';
 import { useTransactionStore } from '@/components/stores/transaction-store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CategoryPieChart } from '@/components/category-pie-chart';
 
 const CACHE_KEY = 'bankData';
 const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds

@@ -1,13 +1,29 @@
 'use client';
-import React, { useState, useMemo } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useMemo, useState } from 'react';
+import { Cell, Pie, PieChart, ResponsiveContainer, Sector } from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
 import { getCurrencySymbol } from '@/lib/currency-mapping';
 import { transactionCategories } from '@/lib/transactionCategoryDefinitions';
 
 const renderActiveShape = (props: any) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
+  const {
+    cx,
+    cy,
+    innerRadius,
+    outerRadius,
+    startAngle,
+    endAngle,
+    fill,
+    payload,
+    value
+  } = props;
   const currencySymbol = getCurrencySymbol(payload.currency);
   return (
     <g>
@@ -15,16 +31,34 @@ const renderActiveShape = (props: any) => {
         cx={cx}
         cy={cy}
         innerRadius={innerRadius}
-        outerRadius={outerRadius+10}
+        outerRadius={outerRadius + 10}
         startAngle={startAngle}
         endAngle={endAngle}
         fill={fill}
         stroke="none"
       />
-      <text x={cx} y={cy+5} dy={-10} textAnchor="middle" fill={fill} fontFamily="Inter" fontWeight="500" fontSize="16px">
+      <text
+        x={cx}
+        y={cy + 5}
+        dy={-10}
+        textAnchor="middle"
+        fill={fill}
+        fontFamily="Inter"
+        fontWeight="500"
+        fontSize="16px"
+      >
         {payload.name}
       </text>
-      <text x={cx} y={cy+5} dy={10} textAnchor="middle" fill={fill} fontFamily="Inter" fontWeight="500" fontSize="15px">
+      <text
+        x={cx}
+        y={cy + 5}
+        dy={10}
+        textAnchor="middle"
+        fill={fill}
+        fontFamily="Inter"
+        fontWeight="500"
+        fontSize="15px"
+      >
         {`${currencySymbol}${Math.round(value)} `}
       </text>
     </g>

@@ -8,7 +8,9 @@ export default function GoCardlessRedirect() {
 
   useEffect(() => {
     const completeRequisition = async () => {
-      const newRequisitionString = localStorage.getItem('newRequisitionDetails');
+      const newRequisitionString = localStorage.getItem(
+        'newRequisitionDetails'
+      );
       if (!newRequisitionString) {
         return;
       }

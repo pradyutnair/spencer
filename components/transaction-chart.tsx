@@ -1,23 +1,19 @@
 'use client';
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  BarChart,
   Bar,
+  BarChart,
   CartesianGrid,
-  XAxis,
-  YAxis,
   ResponsiveContainer,
   Tooltip,
   TooltipProps,
-  CartesianAxis
+  XAxis,
+  YAxis
 } from 'recharts';
 import { startOfMonth } from 'date-fns';
 import { Transaction } from '@/types/index';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import dayjs from 'dayjs';
 import { DateRange } from 'react-day-picker';
-import { Icon } from 'lucide-react';
 import { useCurrencyStore } from '@/components/stores/currency-store';
 
 interface TransactionChartProps {

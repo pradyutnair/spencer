@@ -11,33 +11,61 @@ import { cn } from '@/lib/utils';
 import { CalendarIcon } from '@radix-ui/react-icons';
 import { DateRange } from 'react-day-picker';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
-import { format, startOfMonth, startOfWeek, startOfYear, subMonths, subWeeks, subYears } from 'date-fns';
+import {
+  format,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subMonths,
+  subWeeks,
+  subYears
+} from 'date-fns';
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue
+} from '@/components/ui/select';
 
 export function CalendarDateRangePicker() {
   const [date, setDate] = React.useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
-    to: new Date(),
+    to: new Date()
   });
 
   const { setDateRange } = useDateRangeStore();
 
   const presets = [
-    { label: 'Year To Date', range: () => ({ from: startOfYear(new Date()), to: new Date() }) },
-    { label: 'Month To Date', range: () => ({ from: startOfMonth(new Date()), to: new Date() }) },
-    { label: 'Week To Date', range: () => ({ from: startOfWeek(new Date()), to: new Date() }) },
-    { label: 'Past Month', range: () => ({ from: subMonths(new Date(), 1), to: new Date() }) },
-    { label: 'Past Week', range: () => ({ from: subWeeks(new Date(), 1), to: new Date() }) },
-    { label: 'Past Year', range: () => ({ from: subYears(new Date(), 1), to: new Date() }) },
-    { label: 'All Time', range: () => ({ from: new Date('2023-01-01'), to: new Date() }) },
+    {
+      label: 'Year To Date',
+      range: () => ({ from: startOfYear(new Date()), to: new Date() })
+    },
+    {
+      label: 'Month To Date',
+      range: () => ({ from: startOfMonth(new Date()), to: new Date() })
+    },
+    {
+      label: 'Week To Date',
+      range: () => ({ from: startOfWeek(new Date()), to: new Date() })
+    },
+    {
+      label: 'Past Month',
+      range: () => ({ from: subMonths(new Date(), 1), to: new Date() })
+    },
+    {
+      label: 'Past Week',
+      range: () => ({ from: subWeeks(new Date(), 1), to: new Date() })
+    },
+    {
+      label: 'Past Year',
+      range: () => ({ from: subYears(new Date(), 1), to: new Date() })
+    },
+    {
+      label: 'All Time',
+      range: () => ({ from: new Date('2023-01-01'), to: new Date() })
+    }
   ];
 
   const handleDateChange = (newDate: DateRange | undefined) => {
@@ -80,14 +108,18 @@ export function CalendarDateRangePicker() {
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0 flex flex-col items-center" align="end">
-          <div className="w-full flex justify-center p-4">
-            <Select onValueChange={(value) => {
-              const preset = presets.find(p => p.label === value);
-              if (preset) {
-                handlePresetSelect(preset.range);
-              }
-            }}
+        <PopoverContent
+          className="flex w-auto flex-col items-center p-0"
+          align="end"
+        >
+          <div className="flex w-full justify-center p-4">
+            <Select
+              onValueChange={(value) => {
+                const preset = presets.find((p) => p.label === value);
+                if (preset) {
+                  handlePresetSelect(preset.range);
+                }
+              }}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select a preset" />

@@ -9,12 +9,11 @@ export const GET = async (req: NextRequest) => {
 
     // Return the bank data as the response body
     return NextResponse.json(bankData);
-
   } catch (error) {
     console.error('Error fetching balances:', error);
     return {
       status: 500,
-      body: 'Error fetching balances',
+      body: 'Error fetching balances'
     };
   }
 };

@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import React, { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { ChevronDown } from "lucide-react";
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 const BankFilterDropdown = ({ column }) => {
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
@@ -18,10 +17,8 @@ const BankFilterDropdown = ({ column }) => {
   }, [selectedBanks, column]);
 
   const toggleBank = (bank: string) => {
-    setSelectedBanks(prev =>
-      prev.includes(bank)
-        ? prev.filter(b => b !== bank)
-        : [...prev, bank]
+    setSelectedBanks((prev) =>
+      prev.includes(bank) ? prev.filter((b) => b !== bank) : [...prev, bank]
     );
   };
 

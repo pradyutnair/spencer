@@ -1,12 +1,11 @@
-
 //import SideBar from '@/components/SideBar';
 //import MobileNav from "@/components/MobileNavBar";
-import { getLoggedInUser, getUserDetails } from '@/lib/user.actions';
-import {redirect} from "next/navigation";
-import React from "react";
-import Header from "@/components/layout/header";
-import Sidebar from "@/components/layout/sidebar";
-import ThemeProvider  from '@/components/layout/ThemeToggle/theme-provider'
+import { getLoggedInUser } from '@/lib/user.actions';
+import { redirect } from 'next/navigation';
+import React from 'react';
+import Header from '@/components/layout/header';
+import Sidebar from '@/components/layout/sidebar';
+import ThemeProvider from '@/components/layout/ThemeToggle/theme-provider';
 
 export default async function RootLayout({
                                              children,

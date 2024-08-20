@@ -1,0 +1,6 @@
+/* HeroScroll.css */
+@media (min-width: 640px) {
+    .mt-52 {
+        margin-top: 0 !important;
+    }
+}

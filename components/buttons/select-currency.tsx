@@ -16,7 +16,11 @@ import { useCurrencyStore } from '@/components/stores/currency-store';
 export default function SelectCurrency(): JSX.Element {
   const { transactions } = useTransactionStore();
   const { currency, setCurrency } = useCurrencyStore();
-  const currencies: string[] = Array.from(new Set(transactions.map((transaction: Transaction) => transaction.currency)));
+  const currencies: string[] = Array.from(
+    new Set(
+      transactions.map((transaction: Transaction) => transaction.currency)
+    )
+  );
 
   const handleCurrencyChange = (newCurrency: string) => {
     setCurrency(newCurrency);

@@ -1,4 +1,3 @@
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Transaction } from '@/types/index';
 import { formatAmount } from '@/lib/utils';
 import React from 'react';

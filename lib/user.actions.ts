@@ -7,29 +7,27 @@ import { parseStringify } from '@/lib/utils';
 import { redirect } from 'next/navigation';
 import { Query } from 'appwrite';
 
-
 export const signIn = async (formData: FormData) => {
-    "use server";
-    try {
-        const {account} = await createAdminClient();
-        const email = formData.get("email") as string;
-        const password = formData.get("password") as string;
-        const response = await account.createEmailPasswordSession(email, password);
-        console.log("FUNCTION signIn RESPONSE:", parseStringify(response));
+  'use server';
+  try {
+    const { account } = await createAdminClient();
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const response = await account.createEmailPasswordSession(email, password);
+    console.log('FUNCTION signIn RESPONSE:', parseStringify(response));
 
-        cookies().set("appwrite-session", response.secret, {
-            path: "/",
-            httpOnly: true,
-            secure: true,
-        });
+    cookies().set('appwrite-session', response.secret, {
+      path: '/',
+      httpOnly: true,
+      secure: true
+    });
 
-        redirect("/dashboard");
-
-    } catch (error) {
-        console.error('Error:', error);
-        throw error; // propagate the error to the caller
-    }
-}
+    redirect('/dashboard');
+  } catch (error) {
+    console.error('Error:', error);
+    throw error; // propagate the error to the caller
+  }
+};
 
 
 export async function getLoggedInUser() {

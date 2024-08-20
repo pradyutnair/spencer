@@ -8,7 +8,8 @@ export default function GoCardlessRedirect() {
 
   useEffect(() => {
     const completeRequisition = async () => {
-      const pendingRequisitionString = localStorage.getItem('pendingRequisition');
+      const pendingRequisitionString =
+        localStorage.getItem('pendingRequisition');
       if (!pendingRequisitionString) {
         return;
       }

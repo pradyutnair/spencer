@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
-import { Chart, ArcElement, Tooltip, Legend, TooltipItem } from 'chart.js';
+import { ArcElement, Chart, Legend, Tooltip, TooltipItem } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { getMainColor } from '@/lib/colourUtils';
 import { formatAmount } from '@/lib/utils';

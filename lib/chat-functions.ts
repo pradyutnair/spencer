@@ -22,11 +22,14 @@ export const getCategoryTotalWithinTimeFrame = (
   const endDateFormatted = format(end, 'dd MMM');
   const year = format(start, 'yyyy');
 
-
   let total = transactions
-    .filter(transaction => {
+    .filter((transaction) => {
       const transactionDate = new Date(transaction.bookingDate);
-      return transaction.category === category && transactionDate >= start && transactionDate <= end;
+      return (
+        transaction.category === category &&
+        transactionDate >= start &&
+        transactionDate <= end
+      );
     })
     .reduce((sum, transaction) => sum + transaction.amount, 0);
 

@@ -4,8 +4,13 @@ import { Transaction } from '@/types/index';
 import { DateRange } from 'react-day-picker';
 import { calculatePreviousPeriod } from '@/lib/utils';
 
-function filterTransactionsByCurrency(transactions: Transaction[], currency: string) {
-  return transactions.filter(transaction => transaction.currency === currency);
+function filterTransactionsByCurrency(
+  transactions: Transaction[],
+  currency: string
+) {
+  return transactions.filter(
+    (transaction) => transaction.currency === currency
+  );
 }
 
 function calculateTotal(transactions: Transaction[], from: Date, to: Date, isIncome: boolean) {

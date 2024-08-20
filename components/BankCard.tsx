@@ -1,9 +1,13 @@
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import Image from "next/image";
-import { JSX, ReactNode, PromiseLikeOfReactNode } from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import Image from 'next/image';
+import { JSX, PromiseLikeOfReactNode, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
 
 interface Balance {
   amount: string;

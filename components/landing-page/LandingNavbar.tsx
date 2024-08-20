@@ -2,13 +2,12 @@ import Image from 'next/image';
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger
 } from '@/components/ui/sheet';
 
-export const Navbar = () => {
+export const LandingNavbar = () => {
   return (
     <div className="relative min-w-full">
       <div className=" px-4">
@@ -49,7 +48,7 @@ export const Navbar = () => {
               </SheetContent>
             </Sheet>
           </div>
-          <nav className="hidden items-center gap-6 sm:flex ">
+          <nav className="hidden items-center gap-6 sm:flex mr-4">
             <a
               href="#"
               className="text-white text-opacity-60 transition hover:text-opacity-100"
@@ -68,9 +67,9 @@ export const Navbar = () => {
             >
               About
             </a>
-            <button className="rounded-sm bg-white px-4 py-2 text-black transition hover:bg-opacity-90">
-              Try now
-            </button>
+            {/*<button className="rounded-sm bg-white px-4 py-2 text-black transition hover:bg-opacity-90">*/}
+            {/*  Try now*/}
+            {/*</button>*/}
           </nav>
         </div>
       </div>

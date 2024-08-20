@@ -1,17 +1,17 @@
-"use client";
-import React, { useRef } from "react";
-import { useScroll, useTransform, motion, MotionValue } from "framer-motion";
+'use client';
+import React, { useRef } from 'react';
+import { motion, MotionValue, useScroll, useTransform } from 'framer-motion';
 
 export const ContainerScroll = ({
   titleComponent,
-  children,
+  children
 }: {
   titleComponent: string | React.ReactNode;
   children: React.ReactNode;
 }) => {
   const containerRef = useRef<any>(null);
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: containerRef
   });
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -20,9 +20,9 @@ export const ContainerScroll = ({
       setIsMobile(window.innerWidth <= 768);
     };
     checkMobile();
-    window.addEventListener("resize", checkMobile);
+    window.addEventListener('resize', checkMobile);
     return () => {
-      window.removeEventListener("resize", checkMobile);
+      window.removeEventListener('resize', checkMobile);
     };
   }, []);
 
@@ -36,13 +36,13 @@ export const ContainerScroll = ({
 
   return (
     <div
-      className="h-[60rem] md:h-[70rem] flex items-center justify-center relative p-2 md:p-20 w-full"
+      className="relative flex h-[60rem] w-full items-center justify-center p-2 md:h-[70rem] md:p-20"
       ref={containerRef}
     >
       <div
-        className="py-10 md:py-20 w-full relative"
+        className="relative w-full py-10 md:py-20"
         style={{
-          perspective: "1000px",
+          perspective: '1000px'
         }}
       >
         <Header translate={translate} titleComponent={titleComponent} />
@@ -85,7 +85,7 @@ export const Card = ({
         boxShadow:
           "0 0 #0000004d, 0 9px 20px #0000004a, 0 37px 37px #00000042, 0 84px 50px #00000026, 0 149px 60px #0000000a, 0 233px 65px #00000003",
       }}
-      className="max-w-7xl -mt-12 mx-auto h-[30rem] md:h-[40rem] w-full border-4 border-[#6C6C6C] p-2 md:p-2 bg-[#222222] rounded-[30px]"
+      className="max-w-7xl -mt-12 mx-auto h-[60rem] md:h-[40rem] w-full border-4 border-[#6C6C6C] p-2 md:p-2 bg-[#222222] rounded-[30px]"
     >
       <div className="h-full w-full overflow-hidden rounded-2xl bg-gray-100 dark:bg-zinc-900 md:rounded-2xl md:p-2">
         {children}

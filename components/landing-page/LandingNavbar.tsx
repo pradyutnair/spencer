@@ -50,19 +50,19 @@ export const LandingNavbar = () => {
           </div>
           <nav className="hidden items-center gap-6 sm:flex mr-4">
             <a
-              href="#"
+              href="#features"
               className="text-white text-opacity-60 transition hover:text-opacity-100"
             >
               Features
             </a>
             <a
-              href="#"
+              href="#pricing"
               className="text-white text-opacity-60 transition hover:text-opacity-100"
             >
               Pricing
             </a>
             <a
-              href="#"
+              href="/about"
               className="text-white text-opacity-60 transition hover:text-opacity-90"
             >
               About

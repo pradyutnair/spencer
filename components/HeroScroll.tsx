@@ -65,7 +65,9 @@ export function HeroScrollDemo() {
               </p>
             </div>
             <div className="mt-8 flex justify-center">
-              <button className="shadow-w mb-12 rounded-sm bg-gradient-to-r from-gray-400 via-gray-600 to-red-500 px-8 py-3 font-semibold text-white">
+              <button
+                onClick={() => window.open('/dashboard', '_blank')}
+                className="shadow-w mb-12 rounded-sm bg-gradient-to-r from-gray-400 via-gray-600 to-red-500 px-8 py-3 font-semibold text-white">
                 Try now
               </button>
             </div>

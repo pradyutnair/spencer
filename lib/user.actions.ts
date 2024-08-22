@@ -14,7 +14,7 @@ export const signIn = async (formData: FormData) => {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const response = await account.createEmailPasswordSession(email, password);
-    console.log('FUNCTION signIn RESPONSE:', parseStringify(response));
+    //console.log('FUNCTION signIn RESPONSE:', parseStringify(response));
 
     cookies().set('appwrite-session', response.secret, {
       path: '/',
@@ -23,9 +23,11 @@ export const signIn = async (formData: FormData) => {
     });
 
     redirect('/dashboard');
+
   } catch (error) {
-    console.error('Error:', error);
-    throw error; // propagate the error to the caller
+    console.error('Error in signing in:', error);
+  } finally {
+    redirect('/dashboard');
   }
 };
 
@@ -83,17 +85,7 @@ export async function signUpWithEmail(formData: FormData) {
     await account.create(userId, email, password, name);
 
     // Create a new document in the database
-    const newUser = await database.createDocument(
-        process.env.APPWRITE_DATABASE_ID!,
-        process.env.APPWRITE_USER_COLLECTION_ID!,
-        ID.unique(), // Unique ID for the document
-        {
-            userId: userId, // User ID
-            email: email,
-            firstName: firstName,
-            lastName: lastName,
-        }
-    );
+    const newUser = await writeUserDB(email, firstName, lastName, userId);
 
     if (!newUser) {
         throw new Error('Failed to write user to database');
@@ -109,7 +101,13 @@ export async function signUpWithEmail(formData: FormData) {
         secure: true,
     });
 
-    redirect("/select-country");
+    const paymentLink = process.env.STRIPE_PAYMENT_LINK_PROD!;
+
+    //redirect("/select-country");
+
+    // Redirect to the payment link
+    redirect(paymentLink);
+
 }
 
 export const logoutAccount = async () => {
@@ -124,3 +122,84 @@ export const logoutAccount = async () => {
     }
 }
 
+
+export async function writeUserDB(email: string, firstName: string, lastName: string, userId?: string) {
+  try {
+    // Create a new profile
+    const { database } = await createAdminClient();
+
+    // Use provided userId or generate a unique one
+    const newUserId = userId || ID.unique();
+
+    // Check if the user already exists in the database
+    const userExists = await checkUserExists(email);
+
+    if (userExists) {
+      console.log('User already exists:', email);
+      return null;
+    }
+
+    // Ensure the firstName and lastName are not empty and capitalize the first letter
+    firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+    lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+
+    // Create a new document in the database
+    return await database.createDocument(
+      process.env.APPWRITE_DATABASE_ID!,
+      process.env.APPWRITE_USER_COLLECTION_ID!,
+      ID.unique(), // Unique ID for the document
+      {
+        userId: newUserId, // User ID
+        email: email,
+        firstName: firstName,
+        lastName: lastName
+      }
+    );
+
+  } catch (error) {
+    console.error('Error creating new user:', error);
+    throw error;
+  }
+}
+
+// Write a function to check if the user already exists in the database using their email
+export async function checkUserExists(email: string) {
+  try {
+    const { database } = await createAdminClient();
+    const userDocument = await database.listDocuments(
+      process.env.APPWRITE_DATABASE_ID!,
+      process.env.APPWRITE_USER_COLLECTION_ID!,
+      [Query.equal('email', email)]
+    );
+    return userDocument.documents.length > 0;
+  } catch (error) {
+    console.error('Error in checkUserExists:', error);
+    return false;
+  }
+}
+
+// Write a function to update the user's subscription status to true/false
+export async function updateUserSubscription(email: string, subscriptionStatus: boolean) {
+    try {
+      const { database } = await createAdminClient();
+      const userDocument = await database.listDocuments(
+        process.env.APPWRITE_DATABASE_ID!,
+        process.env.APPWRITE_USER_COLLECTION_ID!,
+        [Query.equal('email', email)]
+      );
+
+      if (userDocument.documents.length > 0) {
+        const user = userDocument.documents[0];
+        await database.updateDocument(
+          process.env.APPWRITE_DATABASE_ID!,
+          process.env.APPWRITE_USER_COLLECTION_ID!,
+          user.$id,
+          {subscriber: subscriptionStatus }
+        );
+
+        console.log('User subscription status updated for:', email);
+      }
+  } catch (error) {
+      console.error('Error in updateUserSubscription:', error);
+      }
+}

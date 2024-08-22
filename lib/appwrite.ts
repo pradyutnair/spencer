@@ -11,11 +11,10 @@ export async function createSessionClient() {
   const session = cookies().get('appwrite-session');
 
   if (!session || !session.value) {
-    throw new Error('No session');
+    console.error('No session found');
+  } else {
+    client.setSession(session.value);
   }
-
-  client.setSession(session.value);
-
   return {
     get account() {
       return new Account(client);

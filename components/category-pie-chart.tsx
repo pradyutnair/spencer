@@ -113,7 +113,7 @@ export function CategoryPieChart({ transactions, currency }) {
   };
 
   return (
-    <div className="flex flex-col h-full w-full justify-center -mt-20">
+    <div className="flex flex-col h-full w-full justify-center -mt-20 font-inter">
       <div className="flex items-center justify-center w-full h-96">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

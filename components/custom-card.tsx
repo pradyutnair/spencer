@@ -180,7 +180,7 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
             <CardDescription></CardDescription>
           </div>
           <CardContent>
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center font-inter">
               <CategoryPieChart transactions={transactions} currency={currency} />
             </div>
           </CardContent>

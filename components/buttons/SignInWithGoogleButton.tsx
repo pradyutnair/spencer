@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { loginWithGoogle, signUpWithGoogle } from '@/lib/oauth';
 import React from 'react';
 import Image from 'next/image';
+import { loginWithGoogleNew } from '@/lib/login-oauth';
 
 const SignInWithGoogleButton = ({ type = 'sign-in' }: { type?: string }) => {
   let buttonText;
@@ -10,7 +11,7 @@ const SignInWithGoogleButton = ({ type = 'sign-in' }: { type?: string }) => {
 
   if (type === 'sign-in') {
     buttonText = 'Log in with';
-    functionToUse = loginWithGoogle;
+    functionToUse = loginWithGoogleNew;
   } else {
     buttonText = 'Sign up with';
     functionToUse = signUpWithGoogle;

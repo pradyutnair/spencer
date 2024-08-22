@@ -30,7 +30,7 @@ export default function GoCardlessRedirect() {
         }
 
         localStorage.removeItem('pendingRequisition');
-        router.push('/');
+        router.push('/dashboard');
       } catch (error) {
         console.error('Error completing requisition:', error);
       }
@@ -41,7 +41,8 @@ export default function GoCardlessRedirect() {
 
   return (
     <div>
-      <h1>GoCardless Redirect</h1>
+    {/*  Add a spinner here */}
+      GoCardless Redirect
     </div>
   );
 }

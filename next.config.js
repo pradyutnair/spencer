@@ -1,17 +1,33 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    STRIPE_PAYMENT_LINK_TEST: process.env.STRIPE_PAYMENT_LINK_TEST,
+    STRIPE_PAYMENT_LINK_PROD: process.env.STRIPE_PAYMENT_LINK_PROD,
+    STRIPE_SECRET_KEY_TEST: process.env.STRIPE_SECRET_KEY_TEST,
+    STRIPE_SECRET_KEY_PROD: process.env.STRIPE_SECRET_KEY_PROD,
+  },
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '**'
+      },
+      {
+        protocol: 'https',
+        hostname: 'utfs.io'
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'drive.google.com'
+      },
+      {
+        protocol: 'https',
+        hostname: 'unsplash.com'
       }
-    ],
-    domains: [
-      'utfs.io',
-      'storage.googleapis.com',
-      'drive.google.com',
-      'unsplash.com'
     ]
   },
   webpack(config) {

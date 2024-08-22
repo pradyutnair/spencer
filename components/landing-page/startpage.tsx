@@ -1,6 +1,6 @@
 import { Carousel } from './carousel';
 import { LandingNavbar } from './LandingNavbar';
-import { PackagesComponent } from './packages';
+import { PricingComponent } from './pricing';
 import { HeroScrollDemo } from '@/components/HeroScroll';
 import LandingFooter from '@/components/landing-page/footer-landing';
 
@@ -17,7 +17,7 @@ export function StartPage() {
       {/*<ProductShowCase />*/}
 
       <Carousel />
-      <PackagesComponent />
+      <PricingComponent />
       {/* <SectionOne />
       <SectionTwo />
       <SectionThree /> */}

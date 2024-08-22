@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
                 maxHistoricalDays: maxHistoricalDays,
             });
         } catch (error) {
-            console.error('Unable to initialize session with accessValidForDays and maxHistoricalDays:', error);
+            console.error(`Unable to initialize session with accessValidForDays and maxHistoricalDays: ${accessValidForDays} and ${maxHistoricalDays}`);
             init = await client.initSession({
                 redirectUrl: redirectUrl,
                 institutionId: institutionId,

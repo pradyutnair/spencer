@@ -1,5 +1,3 @@
-// src/app/oauth/route.js
-
 import { createAdminClient } from '../../../lib/appwrite';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -9,9 +7,17 @@ import { getLoggedInUser } from '../../../lib/user.actions';
 export async function GET(request) {
   try {
     if (!request || !request.nextUrl) {
-      throw new Error('Invalid request object');
+      console.error('Invalid request');
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
+
     console.log('OAUTH REQUEST: ', request);
+
+    // Check if a session already exists and delete it
+    const existingSession = cookies().get('appwrite-session');
+    if (existingSession) {
+      cookies().delete('appwrite-session');
+    }
 
     const userId = request.nextUrl.searchParams.get('userId');
     const secret = request.nextUrl.searchParams.get('secret');
@@ -62,10 +68,15 @@ export async function GET(request) {
     );
 
     if (!newUser) {
-      throw new Error('Failed to write user to database');
+      console.error('Failed to create a new user document');
+      return NextResponse.json({ error: 'Failed to create a new user document' }, { status: 500 });
     }
+    //return NextResponse.redirect(`${request.nextUrl.origin}/select-country`);
 
-    return NextResponse.redirect(`${request.nextUrl.origin}/select-country`);
+    const paymentLink = process.env.STRIPE_PAYMENT_LINK_PROD;
+    //return NextResponse.redirect(`${request.nextUrl.origin}/dashboard`);
+    return NextResponse.redirect(paymentLink);
+
   } catch (error) {
     console.error('OAUTH Error:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });

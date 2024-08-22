@@ -24,7 +24,7 @@ const features = [
 
 export const Features = () => {
   return (
-    <div className="text-white py-[72px] sm:py-[90px]">
+    <div id="features" className="text-white py-[72px] sm:py-[90px]">
       <div className="container flex flex-col items-center">
         <h2 className="text-center font-extrabold text-4xl sm:text-6xl tracking-tighter drop-shadow-lg opacity-100 md:stroke-white stroke-2">
           All you need

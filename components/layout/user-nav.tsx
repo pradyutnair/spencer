@@ -64,17 +64,17 @@ export function UserNav() {
               <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
             </div>
             <DropdownMenuSeparator className={"mt-3 mb-2"}/>
-            <div onSelect={(e) => e.preventDefault()}>
-              <div className="flex items-center justify-between w-full">
-                <Sun className="h-5 w-5 text-yellow-500" />
-                <Switch
-                  id="theme-toggle"
-                  checked={theme === 'dark'}
-                  onCheckedChange={handleThemeChange}
-                />
-                <Moon className="h-5 w-5 text-gray-500" />
-              </div>
-            </div>
+            {/*<div onSelect={(e) => e.preventDefault()}>*/}
+            {/*  <div className="flex items-center justify-between w-full">*/}
+            {/*    <Sun className="h-5 w-5 text-yellow-500" />*/}
+            {/*    <Switch*/}
+            {/*      id="theme-toggle"*/}
+            {/*      checked={theme === 'dark'}*/}
+            {/*      onCheckedChange={handleThemeChange}*/}
+            {/*    />*/}
+            {/*    <Moon className="h-5 w-5 text-gray-500" />*/}
+            {/*  </div>*/}
+            {/*</div>*/}
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
@@ -97,7 +97,7 @@ export function UserNav() {
               </DropdownMenuItem>
             </Link>
             <form action={logoutAccount}>
-              <Button variant="ghost" type="submit" className="w-full text-left hover:text-red-600">
+              <Button variant="ghost" type="submit" className="w-full text-left hover:text-red-600 bg-zinc-800 mt-4">
                 Sign out
               </Button>
             </form>

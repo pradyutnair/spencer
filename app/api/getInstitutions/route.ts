@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     });
 
     // create new access token
-    const data = await client.generateToken();
+    await client.generateToken();
 
     // get institutions
     const institutions = await client.institution.getInstitutions({

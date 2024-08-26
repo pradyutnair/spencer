@@ -402,6 +402,8 @@ export interface Balance {
 }
 
 export type Transaction = {
+  bankLogo?: string;
+  $id?: string;
   accountId?: string;
   transactionId: string;
   debtorName?: string;

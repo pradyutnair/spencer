@@ -8,7 +8,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
 
-const BankFilterDropdown = ({ column }) => {
+interface Column {
+  getFacetedUniqueValues: () => Map<string, any>;
+  setFilterValue: (value: string[] | undefined) => void;
+}
+
+interface BankFilterDropdownProps {
+  column: Column;
+}
+
+const BankFilterDropdown: React.FC<BankFilterDropdownProps> = ({ column }) => {
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
   const uniqueBanks = Array.from(column.getFacetedUniqueValues().keys());
 

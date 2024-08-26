@@ -35,11 +35,11 @@ export const PricingComponent = () => {
           <Step title="Expense tracking and automated reports" />
         </ul>
         <button
-          //onClick={() => {window.open(paymentLink, '_blank')}}
+          onClick={() => {window.open(paymentLink, '_blank')}}
           // Send the user to the signup page
-          onClick={() => {
-            window.location.href = '/sign-up';
-          }}
+          // onClick={() => {
+          //   window.location.href = '/sign-up';
+          // }}
           className="inline-flex h-12 w-full animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#351561,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-white/50 transition transition-colors hover:text-white">
           Purchase
         </button>

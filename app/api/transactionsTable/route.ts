@@ -37,9 +37,6 @@ export const GET = async (req: NextRequest) => {
 
     } catch (error) {
         console.error('Error fetching transactions:', error);
-        return {
-            status: 500,
-            body: 'Error fetching transactions',
-        };
+        return NextResponse.json({ status: 500, body: 'Error fetching transactions' }, { status: 500 });
     }
 };

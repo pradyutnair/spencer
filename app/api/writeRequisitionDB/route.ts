@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/appwrite';
 import { ID } from 'node-appwrite';
 
@@ -11,9 +11,9 @@ interface RequisitionParams {
     bankLogo: string;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    if (req.method === 'POST') {
-        const { userId, requisitionId, bankName, bankLogo }: RequisitionParams = req.body;
+export async function POST(req: NextRequest) {
+    try {
+        const { userId, requisitionId, bankName, bankLogo }: RequisitionParams = await req.json();
 
         // Create a new admin client
         const { database } = await createAdminClient();
@@ -33,15 +33,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // If the document creation failed, return an error response
         if (!newRequisition) {
-            res.status(500).json({ error: 'Failed to write requisition to database' });
-            return;
+            return NextResponse.json({ error: 'Failed to write requisition to database' }, { status: 500 });
         }
 
         // Return a success response
-        res.status(200).json({ message: 'Requisition written to database successfully' });
-    } else {
-        // Handle any other HTTP method
-        res.setHeader('Allow', ['POST']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+        return NextResponse.json({ message: 'Requisition written to database successfully' });
+    } catch (error) {
+        console.error('Error writing requisition to database:', error);
+        return NextResponse.json({ error: 'Error writing requisition to database' }, { status: 500 });
     }
 }

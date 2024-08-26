@@ -1,11 +1,12 @@
 import React from 'react';
+import Image from 'next/image';
 
 const AboutPage = () => {
   return (
     <section className="flex min-h-screen flex-col items-center justify-center bg-black text-center ">
       <div className="max-w-screen-lg">
         <h1 className="mb-8 text-6xl font-extrabold text-white">About Us</h1>
-        <img
+        <Image
           src="/dashboard.png"
           alt="Team Image"
           className="mb-8 h-auto w-full"

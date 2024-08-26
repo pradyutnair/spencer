@@ -74,7 +74,7 @@ export async function signUpWithEmail(formData: FormData) {
     }
 
     // Create a new profile
-    const {account, database} = await createAdminClient();
+    const {account} = await createAdminClient();
 
     // Unique ID for the user
     const userId = ID.unique();

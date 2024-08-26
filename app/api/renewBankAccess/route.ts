@@ -66,6 +66,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('COMPLETE REQUISITION POST Error:', error);
-    return NextResponse.json({ error: 'Failed to complete requisition', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to complete requisition', details: error }, { status: 500 });
   }
 }

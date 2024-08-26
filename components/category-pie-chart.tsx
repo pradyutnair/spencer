@@ -65,7 +65,7 @@ const renderActiveShape = (props: any) => {
   );
 };
 
-export function CategoryPieChart({ transactions, currency }) {
+export function CategoryPieChart({ transactions, currency } : { transactions: any[], currency: string }) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [selectedBank, setSelectedBank] = useState("All Banks");
   const { dateRange } = useDateRangeStore();
@@ -99,7 +99,7 @@ export function CategoryPieChart({ transactions, currency }) {
     }));
   }, [transactions, currency, selectedBank, fromDate, toDate]);
 
-  const onPieEnter = (_, index) => {
+  const onPieEnter = (_: any, index: any) => {
     setActiveIndex(index);
   };
 

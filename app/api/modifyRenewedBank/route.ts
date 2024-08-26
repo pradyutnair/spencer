@@ -64,6 +64,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error in modifyRenewedBank POST:', error);
-    return NextResponse.json({ error: 'Failed to modify renewed bank', details: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to modify renewed bank', details: error }, { status: 500 });
   }
 }

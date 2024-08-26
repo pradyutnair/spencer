@@ -27,7 +27,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow
 } from '@/components/ui/table';
@@ -38,6 +37,139 @@ import { SkeletonTable } from '@/components/skeletons/table-skeleton';
 import { useTransactionTableStore } from '@/components/stores/transaction-table-store';
 import CategoryCell from '@/components/category-cell';
 import { getMainColor } from '@/lib/colourUtils';
+
+function useSelectedBanks() {
+  const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
+  return { selectedBanks, setSelectedBanks };
+}
+
+function useBankLogoColor(bankLogo: string) {
+  const [color, setColor] = useState<string | null>(null);
+
+  useEffect(() => {
+    getMainColor(bankLogo).then(setColor).catch(console.error);
+  }, [bankLogo]);
+
+  return color;
+}
+
+function BankHeader({ column }: { column: any }) {
+  const { selectedBanks, setSelectedBanks } = useSelectedBanks();
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="px--5 text-left">
+          Bank
+          <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        {Array.from(column.getFacetedUniqueValues()).map((value) => (
+          <DropdownMenuCheckboxItem
+            key={value as string}
+            checked={selectedBanks.includes(value as string)}
+            onCheckedChange={(checked) => {
+              setSelectedBanks((prev) =>
+                checked
+                  ? [...prev, value as string]
+                  : prev.filter((v) => v !== value)
+              );
+            }}
+          >
+            {value as string}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function BankCell({ row }: { row: any }) {
+  const bankName = row.getValue('Bank') as string;
+  const formattedBankName = bankName
+    .toLowerCase()
+    .replace(/\b\w/g, (char: string) => char.toUpperCase());
+  const bankLogo = row.original.bankLogo as string;
+  const color = useBankLogoColor(bankLogo);
+
+  return (
+    <div className="group relative">
+      <div
+        className={cn(
+          'flex items-center justify-center',
+          'rounded-full px-2 py-1',
+          'text-sm font-medium',
+          'transition-all duration-300 ease-in-out',
+          'cursor-pointer',
+          'hover:bg-gradient'
+        )}
+        style={{
+          color: color || 'inherit',
+          borderColor: color || 'currentColor',
+          borderWidth: '1px',
+          borderStyle: 'solid'
+        }}
+      >
+        {formattedBankName}
+      </div>
+      <div
+        className={cn(
+          'absolute inset-0',
+          'rounded-full',
+          'opacity-0 group-hover:opacity-60',
+          'transition-opacity duration-300 ease-in-out',
+          'pointer-events-none'
+        )}
+        style={{
+          background: `linear-gradient(180deg, ${
+            color || 'currentColor'
+          } 0%, transparent 100%)`
+        }}
+      />
+    </div>
+  );
+}
+
+function ExcludeCell({ row }: { row: any }) {
+  const [checked, setChecked] = useState<boolean>(row.original.exclude === true);
+
+  const handleChange = async (value: boolean) => {
+    let transactionId = row.original.$id;
+    setChecked(value);
+    row.original.exclude = value;
+
+    try {
+      const response = await fetch('/api/excludeTransaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          transactionId,
+          exclude: value
+        })
+      });
+
+      console.log('API Exclusion Response:', response);
+
+      if (!response.ok) {
+        console.error('Failed to update transaction');
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      setChecked(!value);
+      row.original.exclude = !value;
+    }
+  };
+
+  return (
+    <Checkbox
+      checked={checked}
+      onCheckedChange={handleChange}
+      aria-label="Exclude row"
+    />
+  );
+}
 
 export const columns: ColumnDef<Transaction>[] = [
   {
@@ -134,7 +266,7 @@ export const columns: ColumnDef<Transaction>[] = [
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              transactionId: transactionId,
+              transactionId,
               category: newCategory
             })
           });
@@ -142,7 +274,7 @@ export const columns: ColumnDef<Transaction>[] = [
           console.log('API Category Response:', response);
 
           if (!response.ok) {
-            throw new Error('Failed to update category');
+            console.error('Failed to update category');
           }
         } catch (error) {
           console.error('Error updating category:', error);
@@ -158,100 +290,13 @@ export const columns: ColumnDef<Transaction>[] = [
   {
     accessorKey: 'Bank',
     id: 'Bank',
-    header: ({ column }) => {
-      const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="px--5 text-left">
-              Bank
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {Array.from(column.getFacetedUniqueValues()).map(([value]) => (
-              <DropdownMenuCheckboxItem
-                key={value as string}
-                checked={selectedBanks.includes(value as string)}
-                onCheckedChange={(checked) => {
-                  let updatedBanks: string[];
-                  if (checked) {
-                    updatedBanks = [...selectedBanks, value as string];
-                  } else {
-                    updatedBanks = selectedBanks.filter(
-                      (bank) => bank !== value
-                    );
-                  }
-                  setSelectedBanks(updatedBanks);
-                  column.setFilterValue(
-                    updatedBanks.length ? updatedBanks : undefined
-                  );
-                }}
-              >
-                {value as string}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-    cell: ({ row }) => {
-      const bankName = row.getValue('Bank') as string;
-      const formattedBankName = bankName
-        .toLowerCase()
-        .replace(/\b\w/g, (char: string) => char.toUpperCase());
-      const bankLogo = row.original.bankLogo as string;
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      const [color, setColor] = useState<string | null>(null);
-
-      // eslint-disable-next-line react-hooks/rules-of-hooks
-      useEffect(() => {
-        getMainColor(bankLogo).then(setColor).catch(console.error);
-      }, [bankLogo]);
-
-      return (
-        <div className="group relative">
-          <div
-            className={cn(
-              'flex items-center justify-center',
-              'rounded-full px-2 py-1',
-              'text-sm font-medium',
-              'transition-all duration-300 ease-in-out',
-              'cursor-pointer',
-              'hover:bg-gradient'
-            )}
-            style={{
-              color: color || 'inherit',
-              borderColor: color || 'currentColor',
-              borderWidth: '1px',
-              borderStyle: 'solid'
-            }}
-          >
-            {formattedBankName}
-          </div>
-          <div
-            className={cn(
-              'absolute inset-0',
-              'rounded-full',
-              'opacity-0 group-hover:opacity-60',
-              'transition-opacity duration-300 ease-in-out',
-              'pointer-events-none'
-            )}
-            style={{
-              background: `linear-gradient(180deg, ${
-                color || 'currentColor'
-              } 0%, transparent 100%)`
-            }}
-          />
-        </div>
-      );
-    },
+    header: BankHeader,
+    cell: BankCell,
     filterFn: (row, id, filterValue: string[]) => {
       const rowValue = row.getValue(id) as string;
       return filterValue.length === 0 || filterValue.includes(rowValue);
     }
   },
-
   {
     accessorKey: 'Description',
     id: 'Description',
@@ -269,216 +314,153 @@ export const columns: ColumnDef<Transaction>[] = [
     accessorKey: 'Exclude',
     id: 'Exclude',
     header: 'Exclude?',
-    cell: ({ row }) => {
-      const [checked, setChecked] = React.useState<boolean>(
-        row.original.exclude === true
-      );
-
-      const handleChange = async (value: boolean) => {
-        let transactionId = row.original.$id;
-        setChecked(value);
-        row.original.exclude = value;
-
-        try {
-          const response = await fetch('/api/excludeTransaction', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              transactionId: transactionId,
-              exclude: value
-            })
-          });
-
-          console.log('API Exclusion Response:', response);
-
-          if (!response.ok) {
-            throw new Error('Failed to update transaction');
-          }
-        } catch (error) {
-          console.error('Error updating transaction:', error);
-          setChecked(!value);
-          row.original.exclude = !value;
-        }
-      };
-
-      return (
-        <Checkbox
-          checked={checked}
-          onCheckedChange={handleChange}
-          aria-label="Exclude row"
-        />
-      );
-    },
+    cell: ExcludeCell,
     enableSorting: false,
     enableHiding: false
   }
-  // // Add this new column definition to the columns array
-  // {
-  //     accessorKey: "bankLogo",
-  //     id: "bankLogo",
-  //     header: "Bank Logo",
-  //     cell: ({ row }) => {
-  //         const bankLogo = row.getValue("bankLogo") as string;
-  //         return (
-  //           <div className="flex justify-center">
-  //               <img src={bankLogo} alt="Bank Logo" className="h-8 w-8 object-contain" />
-  //           </div>
-  //         );
-  //     },
-  //     enableSorting: false,
-  //     enableHiding: false,
-  // }
 ];
 
-const STORAGE_KEY = "transactionsData";
-
 export function TransactionsTable() {
-    const { transactions, loading, fetchTransactions } = useTransactionTableStore();
-    const [sorting, setSorting] = React.useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
-    const [rowSelection, setRowSelection] = React.useState({});
+  const { transactions, loading, fetchTransactions } = useTransactionTableStore();
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
 
-    useEffect(() => {
-        fetchTransactions();
-    }, [fetchTransactions]);
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
+  const table = useReactTable({
+    data: transactions,
+    columns,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    state: {
+      sorting,
+      columnFilters,
+      columnVisibility,
+      rowSelection,
+    },
+    initialState: {
+      sorting: [{ id: 'Payment Date', desc: true }],
+    },
+  });
 
-    const table = useReactTable({
-        data: transactions,
-        columns,
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        state: {
-            sorting,
-            columnFilters,
-            columnVisibility,
-            rowSelection,
-        },
-        initialState: {
-            sorting: [{ id: 'Payment Date', desc: true }],
-        },
-    });
-
-    if (loading) {
-        return (
-            SkeletonTable()
-        );
-    }
-
+  if (loading) {
     return (
-        <div className="flex flex-col max-h-full max-w-full">
-            <div className="flex items-center py-4 px-1">
-                <Input
-                    placeholder="Filter Payee..."
-                    value={(table.getColumn("Payee")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                        table.getColumn("Payee")?.setFilterValue(event.target.value)
-                    }
-                    className="w-64"
-                />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => {
-                                return (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                );
-                            })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-                <Table>
-                    <TableHeader>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id} className={"custom-header-row"}>
-                                {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id}>
-                                        {header.isPlaceholder
-                                            ? null
-                                            : flexRender(
-                                                header.column.columnDef.header,
-                                                header.getContext()
-                                            )}
-                                    </TableHead>
-                                ))}
-                            </TableRow>
-                        ))}
-                    </TableHeader>
-                    <TableBody>
-                        {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    className="fixed-row-height" // Apply the fixed height class
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="fixed-cell-overflow">
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow className="fixed-row-height">
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
-                                    No results.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {/*{table.getFilteredSelectedRowModel().rows.length} of{" "}*/}
-                    {/*{table.getFilteredRowModel().rows.length} row(s) selected.*/}
-                </div>
-                <div className="space-x-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
-                    >
-                        Next
-                    </Button>
-                </div>
-            </div>
-        </div>
+      SkeletonTable()
     );
+  }
+
+  return (
+    <div className="flex flex-col max-h-full max-w-full">
+      <div className="flex items-center py-4 px-1">
+        <Input
+          placeholder="Filter Payee..."
+          value={(table.getColumn("Payee")?.getFilterValue() as string) ?? ""}
+          onChange={(event) =>
+            table.getColumn("Payee")?.setFilterValue(event.target.value)
+          }
+          className="w-64"
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="ml-auto">
+              Columns <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {table
+              .getAllColumns()
+              .filter((column) => column.getCanHide())
+              .map((column) => {
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className={"custom-header-row"}>
+                {headerGroup.headers.map((header) => (
+                  <TableCell key={header.id} colSpan={header.colSpan}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  className={"custom-row"}
+                  data-state={row.getIsSelected() ? "selected" : ""}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow className="fixed-row-height">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          {/*{table.getFilteredSelectedRowModel().rows.length} of{" "}*/}
+          {/*{table.getFilteredRowModel().rows.length} row(s) selected.*/}
+        </div>
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

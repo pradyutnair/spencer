@@ -14,6 +14,9 @@ export const InfiniteMovingCards = ({
   className
 }: {
   items: {
+    handle: any;
+    verified: any;
+    avatarUrl: any;
     quote: string;
     name: string;
   }[];

@@ -12,17 +12,35 @@ import { createAdminClient } from '@/lib/appwrite';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-async function handleCheckoutSessionCompleted(data: Stripe.Event.Data.Object) {
+interface StripeEventDataObject {
+  id: string;
+  [key: string]: any;
+}
+
+async function handleCheckoutSessionCompleted(data: StripeEventDataObject) {
   const session = await stripe.checkout.sessions.retrieve(data.id, {
     expand: ['line_items'],
   });
+
+  console.log('STRIPE SESSION', session);
   const customerId = session.customer as string;
   const customer = await stripe.customers.retrieve(customerId);
-  const email = customer.email;
-  const name = customer.name;
+
+  if (customer.deleted) {
+    console.error('Customer is deleted');
+    return;
+  }
+
+  const email = (customer as Stripe.Customer).email;
+  const name = (customer as Stripe.Customer).name;
+
+  console.log('CUSTOMER', customer);
+  console.log('EMAIL', email);
+  console.log('NAME', name);
 
   if (!email || !name) {
     console.error('Customer email or name is missing');
+    return;
   }
 
   const [firstName, lastName] = name.split(' ');
@@ -36,11 +54,11 @@ async function handleCheckoutSessionCompleted(data: Stripe.Event.Data.Object) {
   }
 }
 
-async function handleCustomerSubscriptionDeleted(data: Stripe.Event.Data.Object) {
+async function handleCustomerSubscriptionDeleted(data: StripeEventDataObject) {
   const subscription = await stripe.subscriptions.retrieve(data.id);
   const customerId = subscription.customer as string;
 
-  const database = await createAdminClient();
+  const { database } = await createAdminClient();
   const userDocument = await database.listDocuments(
     process.env.APPWRITE_DATABASE_ID!,
     process.env.APPWRITE_USER_COLLECTION_ID!,
@@ -65,8 +83,8 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    console.error(`Webhook signature verification failed: ${err}`);
+    return NextResponse.json({ error: err }, { status: 400 });
   }
 
   const { type, data } = event;
@@ -74,17 +92,17 @@ export async function POST(req: NextRequest) {
   try {
     switch (type) {
       case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(data.object);
+        await handleCheckoutSessionCompleted(data.object as StripeEventDataObject);
         break;
       case 'customer.subscription.deleted':
-        await handleCustomerSubscriptionDeleted(data.object);
+        await handleCustomerSubscriptionDeleted(data.object as StripeEventDataObject);
         break;
       default:
         console.warn(`Unhandled event type: ${type}`);
     }
   } catch (err) {
-    console.error(`Error handling event: ${err.message} | Event Type: ${type}`);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error(`Error handling event: ${err} | Event Type: ${type}`);
+    return NextResponse.json({ error: err }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

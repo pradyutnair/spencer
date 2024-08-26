@@ -230,7 +230,6 @@ export default function BudgetComponent({ transactions, useColorScheme }: Compon
               </SelectContent>
             </Select>
             <Input
-              label="Budget Amount"
               type="number"
               value={newBudget}
               onChange={(e) => setNewBudget(e.target.value)}

@@ -50,7 +50,11 @@ export function HeroScrollDemo() {
                   Version 1.0 is here
                 </span>
                 <span className="inline-flex items-center justify-center gap-1">
-                  <span className="opacity-75">Read More</span>
+                  <span
+                    onClick={() => window.open('/dashboard', '_blank')}
+                    className="opacity-75">
+                    Try now
+                  </span>
                   <ArrowRightIcon />
                 </span>
               </a>

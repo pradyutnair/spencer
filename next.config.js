@@ -9,6 +9,8 @@ const nextConfig = {
     STRIPE_SECRET_KEY: process.env.ENV_TYPE === 'production' ? process.env.STRIPE_SECRET_KEY_PROD : process.env.STRIPE_SECRET_KEY_TEST,
     STRIPE_PAYMENT_LINK: process.env.ENV_TYPE === 'production' ? process.env.STRIPE_PAYMENT_LINK_PROD : process.env.STRIPE_PAYMENT_LINK_TEST,
     STRIPE_WEBHOOK_SECRET: process.env.ENV_TYPE === 'production' ? process.env.STRIPE_WEBHOOK_SECRET_PROD : process.env.STRIPE_WEBHOOK_SECRET_TEST,
+    //GOCARDLESS_SECRET_ID: process.env.ENV_TYPE === 'production' ? process.env.GOCARDLESS_SECRET_ID_PROD : process.env.GOCARDLESS_SECRET_ID_TEST,
+    //GOCARDLESS_SECRET_KEY: process.env.ENV_TYPE === 'production' ? process.env.GOCARDLESS_SECRET_KEY_PROD : process.env.GOCARDLESS_SECRET_KEY_TEST,
   },
   images: {
     remotePatterns: [

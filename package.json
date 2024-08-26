@@ -58,7 +58,6 @@
     "date-fns": "^2.30.0",
     "dayjs": "^1.11.11",
     "eslint": "8.48.0",
-    "eslint-config-next": "^0.2.4",
     "framer-motion": "^11.3.28",
     "fuse.js": "^7.0.0",
     "lucide-react": "^0.383.0",
@@ -97,6 +96,7 @@
     "@types/three": "^0.167.1",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^5.9.1",
+    "eslint-config-next": "^14.2.6",
     "prettier": "3.0.3",
     "prettier-plugin-tailwindcss": "^0.5.14"
   }

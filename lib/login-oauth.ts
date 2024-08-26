@@ -1,3 +1,4 @@
+'use server';
 import { Account, Client, OAuthProvider } from 'appwrite';
 
 const client = new Client()
@@ -9,8 +10,16 @@ const origin = process.env.NEXTAUTH_URL!;
 
 export const loginWithGoogleNew = async () => {
   try {
-    account.createOAuth2Session(OAuthProvider.Google)
+    console.log('Logging in with Google');
+    console.log('Origin:', origin);
+    const session = await account.getSession('current');
+    console.log('Session:', session);
+    account.createOAuth2Session(
+      OAuthProvider.Google,
+      `${origin}/dashboard`,
+      `${origin}/error` // redirect here on failure
+    );
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
-}
+};

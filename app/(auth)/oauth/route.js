@@ -92,9 +92,10 @@ export async function GET(request) {
     }
     //return NextResponse.redirect(`${request.nextUrl.origin}/select-country`);
 
-    const paymentLink = process.env.STRIPE_PAYMENT_LINK_PROD;
-    //return NextResponse.redirect(`${request.nextUrl.origin}/dashboard`);
+    // Redirect to the payment page
+    const paymentLink = process.env.STRIPE_PAYMENT_LINK;
     return NextResponse.redirect(paymentLink);
+
   } catch (error) {
     console.error('OAUTH Error:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });

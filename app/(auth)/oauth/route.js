@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { ID } from 'node-appwrite';
 import { getLoggedInUser } from '../../../lib/user.actions';
+import { Query } from 'appwrite';
 
 export async function GET(request) {
   try {
@@ -54,6 +55,21 @@ export async function GET(request) {
     console.log('firstName: ', firstName);
     console.log('lastName: ', lastName);
 
+    // Check if the user document already exists
+    const userDocument = await database.listDocuments(
+      process.env.APPWRITE_DATABASE_ID,
+      process.env.APPWRITE_USER_COLLECTION_ID,
+      [Query.equal('email', email)
+      ]
+    );
+
+    if (userDocument.documents.length > 0) {
+      console.log('User document already exists');
+      //return NextResponse.redirect(`${request.nextUrl.origin}/dashboard`);
+      const paymentLink = process.env.STRIPE_PAYMENT_LINK_PROD;
+      return NextResponse.redirect(paymentLink);
+    }
+
     // Create a new document in the database
     const newUser = await database.createDocument(
       process.env.APPWRITE_DATABASE_ID,
@@ -69,14 +85,16 @@ export async function GET(request) {
 
     if (!newUser) {
       console.error('Failed to create a new user document');
-      return NextResponse.json({ error: 'Failed to create a new user document' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to create a new user document' },
+        { status: 500 }
+      );
     }
     //return NextResponse.redirect(`${request.nextUrl.origin}/select-country`);
 
     const paymentLink = process.env.STRIPE_PAYMENT_LINK_PROD;
     //return NextResponse.redirect(`${request.nextUrl.origin}/dashboard`);
     return NextResponse.redirect(paymentLink);
-
   } catch (error) {
     console.error('OAUTH Error:', error);
     return NextResponse.json({ error: 'An error occurred' }, { status: 500 });

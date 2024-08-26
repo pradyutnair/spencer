@@ -9,8 +9,8 @@ const ibmPlexSerif = IBM_Plex_Serif({subsets: ["latin"], weight: ["400", "700"],
 const ibmPlexMono = IBM_Plex_Serif({subsets: ["latin"], weight: ["400", "700"], variable: '--font-ibm-plex-mono'});
 
 export const metadata: Metadata = {
-  title: "Compass",
-  description: "Compass is a simple, flexible, and powerful budgeting app.",
+  title: "Nexpass",
+  description: "Nexpass is a simple, flexible, and powerful budgeting app.",
   icons: {
     icon: "/icons/logo-v2.svg",
   }

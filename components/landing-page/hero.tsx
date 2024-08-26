@@ -31,15 +31,15 @@ export function Hero() {
         </div>
         <div className="flex justify-center">
           <p className="mt-12 text-center text-xl">
-            Stay on top of your spending with ease and accuracy with Compass™,
+            Stay on top of your spending with ease and accuracy with Nexpass™,
             your smart expenditure tracking app that leverages AI assistance for
             precise and effortless financial calculations.
           </p>
         </div>
         <div className="mt-8 flex justify-center">
-          <button className="rounded-sm bg-white px-8 py-4 font-semibold text-black text-lg">
-  Try now
-</button>
+          <button className="rounded-sm bg-white px-8 py-4 text-lg font-semibold text-black">
+            Try now
+          </button>
         </div>
       </div>
       <div className="absolute left-1/2 h-[375px] w-[1300px] -translate-x-1/2 rounded-[100%] bg-zinc-950 blur-md sm:h-[800px] sm:w-[3500px] "></div>
@@ -51,7 +51,7 @@ export function Hero() {
     //   </h1>
 
     //   <p className="mt-4 max-w-[600px] text-[#878787] md:mt-6">
-    //     Stay on top of your spending with ease and accuracy with Compass™, your
+    //     Stay on top of your spending with ease and accuracy with Nexpass™, your
     //     smart expenditure tracking app that leverages AI assistance for precise
     //     and effortless financial calculations.
     //   </p>

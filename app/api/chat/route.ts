@@ -187,7 +187,7 @@ export async function POST(request: Request) {
     const initialResponse = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: `You are a helpful assistant named Compass that answers questions about financial transactions. The current date is ${currentDateTime}. Do not answer questions about anything else apart from transaction data. Be friendly and respond to greetings but if the question is not about personal finances, reply "I am a personal finance assistant, I cannot help you with your query."` },
+        { role: 'system', content: `You are a helpful assistant named Nexpass that answers questions about financial transactions. The current date is ${currentDateTime}. Do not answer questions about anything else apart from transaction data. Be friendly and respond to greetings but if the question is not about personal finances, reply "I am a personal finance assistant, I cannot help you with your query."` },
         { role: 'user', content: userInput },
       ],
       functions,

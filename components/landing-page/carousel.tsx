@@ -17,9 +17,8 @@ export function Carousel() {
       </div>
       {/*  Create a smaller sentence*/}
       <div className="mx-auto max-w-lg">
-        <p className="text-center text-xl text-white/70 sm:text-2xl pb-10">
-            ❤️ by our users
-
+        <p className="pb-10 text-center text-xl text-white/70 sm:text-2xl">
+          ❤️ by our users
         </p>
       </div>
       <InfiniteMovingCards

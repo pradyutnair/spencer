@@ -1,5 +1,5 @@
 import { Feature } from './feature';
-import { BrainIcon, ShieldIcon, DollarSignIcon } from 'lucide-react';
+import { BrainIcon, DollarSignIcon, ShieldIcon } from 'lucide-react';
 
 const features = [
   {

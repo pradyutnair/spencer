@@ -1,7 +1,6 @@
 'use client';
 
-import { CardSpotlight } from "@/components/ui/card-spotlight";
-import { CoffeeIcon, ShieldIcon, DollarSignIcon } from 'lucide-react';
+import { CardSpotlight } from '@/components/ui/card-spotlight';
 
 export const Feature = ({
   title,
@@ -17,12 +16,8 @@ export const Feature = ({
       <div className="inline-flex h-12 w-12 items-center justify-center rounded-sm bg-white text-zinc-950">
         <Icon />
       </div>
-      <p className="text-xl font-bold relative z-20 mt-2 text-white">
-        {title}
-      </p>
-      <div className="text-neutral-200 mt-4 relative z-20">
-        {description}
-      </div>
+      <p className="relative z-20 mt-2 text-xl font-bold text-white">{title}</p>
+      <div className="relative z-20 mt-4 text-neutral-200">{description}</div>
     </CardSpotlight>
   );
 };

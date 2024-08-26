@@ -41,7 +41,7 @@ export default function GoCardlessRedirect() {
 
   return (
     <div>
-    {/*  Add a spinner here */}
+      {/*  Add a spinner here */}
       GoCardless Redirect
     </div>
   );

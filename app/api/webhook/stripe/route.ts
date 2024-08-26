@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
-import { checkUserExists, updateUserSubscription, writeUserDB } from '@/lib/user.actions';
+import {
+  checkUserExists,
+  updateUserSubscription,
+  writeUserDB
+} from '@/lib/user.actions';
 import { Query } from 'appwrite';
 import { createAdminClient } from '@/lib/appwrite';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY_TEST!);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 async function handleCheckoutSessionCompleted(data: Stripe.Event.Data.Object) {

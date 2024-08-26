@@ -15,7 +15,7 @@ const LoginPage = () => {
             height={30}
           />
           <div className="font-ibm-plex-serif ml-2 px-1 text-2xl font-bold">
-            Compass
+            Nexpass
           </div>
         </div>
         <LoginForm />

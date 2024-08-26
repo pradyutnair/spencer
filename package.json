@@ -68,6 +68,7 @@
     "next-themes": "^0.2.1",
     "nextjs-toploader": "^1.6.12",
     "node-appwrite": "^13.0.0",
+    "node-cache": "^5.1.2",
     "nordigen-node": "^1.4.0",
     "openai": "^4.54.0",
     "postcss": "^8.4.38",

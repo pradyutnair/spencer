@@ -1,10 +1,6 @@
 'use client';
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
-import dashboard from '@/public/dashboard.png';
 import logo from '@/public/logo-v1.png';
 
 export default function LandingFooter() {
@@ -44,7 +40,7 @@ export default function LandingFooter() {
                 className={'mr-4'}
               />
               <span className="self-center whitespace-nowrap text-2xl font-semibold dark:text-white">
-                Compass
+                Nexpass
               </span>
             </a>
             <br />
@@ -67,10 +63,7 @@ export default function LandingFooter() {
                   </a>
                 </li>
                 <li>
-                  <a
-                    href="#features"
-                    className="hover:underline"
-                  >
+                  <a href="#features" className="hover:underline">
                     Features
                   </a>
                 </li>
@@ -118,12 +111,12 @@ export default function LandingFooter() {
             </div>
           </div>
         </div>
-        <hr className="my-6 border-gray-200 sm:mx-auto lg:my-8 dark:border-gray-700" />
+        <hr className="my-6 border-gray-200 dark:border-gray-700 sm:mx-auto lg:my-8" />
         <div className="sm:flex sm:items-center sm:justify-between">
-          <span className="text-sm text-gray-500 sm:text-center dark:text-gray-400">
+          <span className="text-sm text-gray-500 dark:text-gray-400 sm:text-center">
             © 2024{' '}
             <a href="https://flowbite.com/" className="hover:underline">
-              Compass™
+              Nexpass™
             </a>
             . All Rights Reserved.
           </span>

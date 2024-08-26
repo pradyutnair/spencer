@@ -12,9 +12,9 @@ export default function RootLayout({
         <Image
           src="/auth-image.jpg"
           alt="Background"
-          layout="fill"
-          objectFit="cover"
           quality={100}
+          width={6000}
+          height={6000}
           className="h-full w-full object-cover"
         />
       </div>

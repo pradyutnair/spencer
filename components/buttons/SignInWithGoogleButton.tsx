@@ -11,7 +11,7 @@ const SignInWithGoogleButton = ({ type = 'sign-in' }: { type?: string }) => {
 
   if (type === 'sign-in') {
     buttonText = 'Log in with';
-    functionToUse = loginWithGoogleNew;
+    functionToUse = loginWithGoogleNew; // Assign function reference
   } else {
     buttonText = 'Sign up with';
     functionToUse = signUpWithGoogle;

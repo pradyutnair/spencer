@@ -8,7 +8,7 @@ import { Account, Client, OAuthProvider } from 'appwrite';
 
 export async function signUpWithGoogle() {
   const { account } = await createAdminClient();
-  cookies().delete("appwrite-session");
+  cookies().delete('appwrite-session');
   const origin = headers().get('origin');
 
   const redirectUrl = await account.createOAuth2Token(

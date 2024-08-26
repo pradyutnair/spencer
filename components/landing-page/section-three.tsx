@@ -11,7 +11,7 @@ export function SectionThree() {
           Singular Banking
         </h4>
         <p className="mb-[35px] text-sm text-[#878787]">
-          We are making great strides to offer users to have a singular Compass
+          We are making great strides to offer users to have a singular Nexpass
           account to handle ALL bank accounts and respective expenditures.
         </p>
 

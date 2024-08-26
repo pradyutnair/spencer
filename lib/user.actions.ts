@@ -22,8 +22,6 @@ export const signIn = async (formData: FormData) => {
       secure: true
     });
 
-    redirect('/dashboard');
-
   } catch (error) {
     console.error('Error in signing in:', error);
   } finally {
@@ -35,7 +33,7 @@ export const signIn = async (formData: FormData) => {
 export async function getLoggedInUser() {
     try {
         const {account} = await createSessionClient();
-        const user = await account.get();
+        const user = await account.get()
         //console.log('User from getLoggedInUser:', user); // Log the user
         return parseStringify(user);
     } catch (error) {

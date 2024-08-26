@@ -5,6 +5,10 @@ const nextConfig = {
     STRIPE_PAYMENT_LINK_PROD: process.env.STRIPE_PAYMENT_LINK_PROD,
     STRIPE_SECRET_KEY_TEST: process.env.STRIPE_SECRET_KEY_TEST,
     STRIPE_SECRET_KEY_PROD: process.env.STRIPE_SECRET_KEY_PROD,
+    ENV_TYPE: process.env.ENV_TYPE,
+    STRIPE_SECRET_KEY: process.env.ENV_TYPE === 'production' ? process.env.STRIPE_SECRET_KEY_PROD : process.env.STRIPE_SECRET_KEY_TEST,
+    STRIPE_PAYMENT_LINK: process.env.ENV_TYPE === 'production' ? process.env.STRIPE_PAYMENT_LINK_PROD : process.env.STRIPE_PAYMENT_LINK_TEST,
+    STRIPE_WEBHOOK_SECRET: process.env.ENV_TYPE === 'production' ? process.env.STRIPE_WEBHOOK_SECRET_PROD : process.env.STRIPE_WEBHOOK_SECRET_TEST,
   },
   images: {
     remotePatterns: [

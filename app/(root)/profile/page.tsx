@@ -142,12 +142,12 @@ export default function ProfilePage() {
             >
               Personal Information
             </TabsTrigger>
-            <TabsTrigger
-              value="billing"
-              className="h-10 min-w-max flex-1 rounded-sm"
-            >
-              Billing Information
-            </TabsTrigger>
+            {/*<TabsTrigger*/}
+            {/*  value="billing"*/}
+            {/*  className="h-10 min-w-max flex-1 rounded-sm"*/}
+            {/*>*/}
+            {/*  Billing Information*/}
+            {/*</TabsTrigger>*/}
             <TabsTrigger
               value="bank"
               className="h-10 min-w-max flex-1 rounded-sm"
@@ -205,19 +205,19 @@ export default function ProfilePage() {
               )}
             </Card>
           </TabsContent>
-          <TabsContent value="billing">
-            <Card>
-              <CardHeader>
-                <CardTitle>Billing Information</CardTitle>
-                <CardDescription>
-                  {/* Add billing information description here */}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {/* Add billing information fields here */}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/*<TabsContent value="billing">*/}
+          {/*  <Card>*/}
+          {/*    <CardHeader>*/}
+          {/*      <CardTitle>Billing Information</CardTitle>*/}
+          {/*      <CardDescription>*/}
+          {/*        /!* Add billing information description here *!/*/}
+          {/*      </CardDescription>*/}
+          {/*    </CardHeader>*/}
+          {/*    <CardContent className="space-y-2">*/}
+          {/*      /!* Add billing information fields here *!/*/}
+          {/*    </CardContent>*/}
+          {/*  </Card>*/}
+          {/*</TabsContent>*/}
           <TabsContent value="bank">
             <Card>
               <CardHeader>

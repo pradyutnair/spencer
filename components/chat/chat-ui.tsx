@@ -101,7 +101,7 @@ export default function ChatComponent() {
         </div>
       </CardHeader>
       <div className="absolute top-3 right-3">
-        <Button variant="ghost" onClick={handleReset} aria-label="Reset chat" className="p-1">
+        <Button variant="ghost" onClick={handleReset} aria-label="Reset chat" className="p-1 mr-2">
           <ResetIcon className="w-4 h-4 text-muted-foreground" />
         </Button>
       </div>
@@ -137,9 +137,9 @@ export default function ChatComponent() {
             <Button
               variant="ghost"
               className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("What is my expense rate?")}
+              onClick={() => handleSuggestedQuestion("What is my current expense rate?")}
             >
-              What is my expense rate?
+              What is my current expense rate?
             </Button>
             <Button
               variant="ghost"
@@ -169,25 +169,12 @@ export default function ChatComponent() {
             >
               List my recent transactions
             </Button>
-            <Button
-              variant="ghost"
-              className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("What is my current expense rate?")}
-            >
-              What is my current expense rate?
-            </Button>
-            <Button
-              variant="ghost"
-              className="bg-muted/50 hover:bg-muted rounded-md px-4 py-2 shadow-sm"
-              onClick={() => handleSuggestedQuestion("What is my predicted expenditure for next month?")}
-            >
-              What is my predicted expenditure for next month?
-            </Button>
+
           </div>
         )}
         <div className="relative font-plex-mono">
           <Textarea
-            placeholder="Ask Compass a question"
+            placeholder="Ask Nexpass a question"
             name="message"
             id="message"
             value={userInput}

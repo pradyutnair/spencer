@@ -15,7 +15,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     if (!initialized) {
-      fetchTransactions();
+      fetchTransactions().then(r => r);
       setInitialized(true);
     }
   }, [fetchTransactions, initialized]);

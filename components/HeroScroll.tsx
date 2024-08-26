@@ -37,7 +37,11 @@ export function HeroScrollDemo() {
       <ContainerScroll
         titleComponent={
           <div className="container">
-            <div className={`flex items-center justify-center ${isMobile ? 'mt-[60rem]' : ''}`}>
+            <div
+              className={`flex items-center justify-center ${
+                isMobile ? 'mt-[60rem]' : ''
+              }`}
+            >
               <a
                 href="#"
                 className="inline-flex gap-3 rounded-sm border border-white/30 px-2 py-1 "
@@ -60,14 +64,15 @@ export function HeroScrollDemo() {
             <div className="flex justify-center">
               <p className="mt-12 text-center text-xl text-zinc-400">
                 Stay on top of your spending with ease and accuracy with
-                Compass™, your smart expenditure tracking app that leverages AI
+                Nexpass™, your smart expenditure tracking app that leverages AI
                 assistance for precise and effortless financial calculations.
               </p>
             </div>
             <div className="mt-8 flex justify-center">
               <button
                 onClick={() => window.open('/dashboard', '_blank')}
-                className="shadow-w mb-12 rounded-sm bg-gradient-to-r from-gray-400 via-gray-600 to-red-500 px-8 py-3 font-semibold text-white">
+                className="shadow-w mb-12 rounded-sm bg-gradient-to-r from-gray-400 via-gray-600 to-red-500 px-8 py-3 font-semibold text-white"
+              >
                 Try now
               </button>
             </div>
@@ -79,7 +84,7 @@ export function HeroScrollDemo() {
           alt="hero"
           height={420}
           width={2800}
-          className="mx-auto h-full w-full rounded-2xl object-left-top mb-24"
+          className="mx-auto mb-24 h-full w-full rounded-2xl object-left-top"
           draggable={false}
         />
       </ContainerScroll>

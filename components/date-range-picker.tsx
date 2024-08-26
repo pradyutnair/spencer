@@ -18,7 +18,10 @@ import {
   startOfYear,
   subMonths,
   subWeeks,
-  subYears
+  subYears,
+  setHours,
+  setMinutes,
+  setSeconds
 } from 'date-fns';
 import {
   Select,
@@ -40,35 +43,38 @@ export function CalendarDateRangePicker() {
   const presets = [
     {
       label: 'Year To Date',
-      range: () => ({ from: startOfYear(new Date()), to: new Date() })
+      range: () => ({ from: startOfYear(new Date()), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     },
     {
       label: 'Month To Date',
-      range: () => ({ from: startOfMonth(new Date()), to: new Date() })
+      range: () => ({ from: startOfMonth(new Date()), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     },
     {
       label: 'Week To Date',
-      range: () => ({ from: startOfWeek(new Date()), to: new Date() })
+      range: () => ({ from: startOfWeek(new Date()), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     },
     {
       label: 'Past Month',
-      range: () => ({ from: subMonths(new Date(), 1), to: new Date() })
+      range: () => ({ from: subMonths(new Date(), 1), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     },
     {
       label: 'Past Week',
-      range: () => ({ from: subWeeks(new Date(), 1), to: new Date() })
+      range: () => ({ from: subWeeks(new Date(), 1), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     },
     {
       label: 'Past Year',
-      range: () => ({ from: subYears(new Date(), 1), to: new Date() })
+      range: () => ({ from: subYears(new Date(), 1), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     },
     {
       label: 'All Time',
-      range: () => ({ from: new Date('2023-01-01'), to: new Date() })
+      range: () => ({ from: new Date('2023-01-01'), to: setHours(setMinutes(setSeconds(new Date(), 59), 59), 23) })
     }
   ];
 
   const handleDateChange = (newDate: DateRange | undefined) => {
+    if (newDate?.to) {
+      newDate.to = setHours(setMinutes(setSeconds(newDate.to, 59), 59), 23);
+    }
     setDateRange(newDate);
     setDate(newDate);
     console.log('Selected date range:', newDate);

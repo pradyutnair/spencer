@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { DateRange } from 'react-day-picker';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { endOfMonth, startOfMonth } from 'date-fns';
 
 type State = {
   dateRange: DateRange | undefined;

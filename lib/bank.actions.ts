@@ -73,8 +73,8 @@ export const getBalances = async ({ requisitionIds }: { requisitionIds: string[]
         const accounts = await getAccounts({ requisitionIds });
 
         if (!accounts) {
-            throw new Error('No accounts found for the provided requisition ID');
-        }
+            console.error('No accounts found for the provided requisition ID');
+        } else {
 
         const balancePromises = accounts.map(async (accountId) => {
             let account = client.account(accountId);
@@ -92,6 +92,7 @@ export const getBalances = async ({ requisitionIds }: { requisitionIds: string[]
         return Object.fromEntries(Object.entries(result).sort(
           ([, a], [, b]) => parseFloat(b.amount) - parseFloat(a.amount)
         ));
+        }
     } catch (error) {
         console.error('Error getting balances:', error);
         return null;

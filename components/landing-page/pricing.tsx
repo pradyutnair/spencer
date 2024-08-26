@@ -1,11 +1,12 @@
-// components/landing-page/pricing.tsx
 'use client';
 import React from 'react';
 import { BackgroundGradient } from '../background-gradient';
 import { Step } from '@/components/landing-page/special-card';
 
-const paymentLink = process.env.STRIPE_PAYMENT_LINK_PROD!;
-console.log('paymentLink', paymentLink);
+const paymentLink = process.env.STRIPE_PAYMENT_LINK!;
+// const prodCheck = process.env.ENV_TYPE
+// console.log('paymentLink', paymentLink);
+// console.log('prodCheck', prodCheck);
 
 export const PricingComponent = () => {
   return (
@@ -34,7 +35,7 @@ export const PricingComponent = () => {
           <Step title="Expense tracking and automated reports" />
         </ul>
         <button
-          onClick={() => window.open(paymentLink, '_blank')}
+          onClick={() => {window.open(paymentLink, '_blank')}}
           className="inline-flex h-12 w-full animate-shimmer items-center justify-center rounded-md border border-slate-800 bg-[linear-gradient(110deg,#000103,45%,#351561,55%,#000103)] bg-[length:200%_100%] px-6 font-medium text-white/50 transition transition-colors hover:text-white">
           Purchase
         </button>

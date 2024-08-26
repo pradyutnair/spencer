@@ -1,8 +1,8 @@
-"use client";
-import { cn } from "@/lib/utils";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import React, { useMemo, useRef } from "react";
-import * as THREE from "three";
+'use client';
+import { cn } from '@/lib/utils';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import React, { useMemo, useRef } from 'react';
+import * as THREE from 'three';
 
 export const CanvasRevealEffect = ({
   animationSpeed = 0.4,
@@ -10,7 +10,7 @@ export const CanvasRevealEffect = ({
   colors = [[0, 255, 255]],
   containerClassName,
   dotSize,
-  showGradient = true,
+  showGradient = true
 }: {
   /**
    * 0.1 - slower
@@ -24,7 +24,7 @@ export const CanvasRevealEffect = ({
   showGradient?: boolean;
 }) => {
   return (
-    <div className={cn("h-full relative bg-white w-full", containerClassName)}>
+    <div className={cn('relative h-full w-full bg-white', containerClassName)}>
       <div className="h-full w-full">
         <DotMatrix
           colors={colors ?? [[0, 255, 255]]}
@@ -38,7 +38,7 @@ export const CanvasRevealEffect = ({
               opacity *= step(intro_offset, u_time * animation_speed_factor);
               opacity *= clamp((1.0 - step(intro_offset + 0.1, u_time * animation_speed_factor)) * 1.25, 1.0, 1.25);
             `}
-          center={["x", "y"]}
+          center={['x', 'y']}
         />
       </div>
       {showGradient && (

@@ -12,7 +12,7 @@ export default async function page() {
   let firstname;
   if (user) {
     const userData = await getUserDetails(user.$id);
-     firstname = userData.firstName || 'User';
+    firstname = userData.firstName || 'User';
   } else {
     redirect('/login');
   }

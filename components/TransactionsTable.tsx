@@ -324,11 +324,11 @@ export function TransactionsTable() {
   const { transactions, loading, fetchTransactions } = useTransactionTableStore();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = useState({});
+  const [columnVisibility] = useState<VisibilityState>({});
+  const [rowSelection] = useState({});
 
   useEffect(() => {
-    fetchTransactions();
+    fetchTransactions().then(r => console.log('Transactions fetched:', r));
   }, [fetchTransactions]);
 
   const table = useReactTable({

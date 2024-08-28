@@ -15,7 +15,7 @@ export const GET = async (req: NextRequest) => {
     let allTransactions: any[] = [];
 
     // Fetch transactions for each requisition
-    for (const { requisitionId } of requisitionData) {
+    for (const { requisitionId, bankName } of requisitionData) {
       // Console log the requisitionId
       console.log('Requisition ID:', requisitionId);
 

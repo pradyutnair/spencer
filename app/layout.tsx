@@ -3,10 +3,10 @@ import { IBM_Plex_Serif, Inter } from 'next/font/google';
 import './globals.css';
 import ThemeProvider from '@/components/layout/ThemeToggle/theme-provider';
 import React from 'react';
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const ibmPlexSerif = IBM_Plex_Serif({subsets: ["latin"], weight: ["400", "700"], variable: '--font-ibm-plex-serif'});
-//const ibmPlexMono = IBM_Plex_Serif({subsets: ["latin"], weight: ["400", "700"], variable: '--font-ibm-plex-mono'});
 
 export const metadata: Metadata = {
   title: "Nexpass",
@@ -24,15 +24,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
     <body className={`${inter.variable} ${ibmPlexSerif.variable}`}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      {children}
-    </ThemeProvider>
-
+      <Analytics />
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        {children}
+      </ThemeProvider>
     </body>
     </html>
   );

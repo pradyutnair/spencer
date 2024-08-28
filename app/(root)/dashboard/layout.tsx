@@ -6,6 +6,7 @@ import React from 'react';
 import Header from '@/components/layout/header';
 import Sidebar from '@/components/layout/sidebar';
 import ThemeProvider from '@/components/layout/ThemeToggle/theme-provider';
+import { Analytics } from "@vercel/analytics/react"
 
 export default async function RootLayout({
                                              children,
@@ -38,6 +39,7 @@ export default async function RootLayout({
     // New layout
     return (
         <main className="flex h-screen w-full font-inter dark:bg-zinc-950 bg-white ">
+          <Analytics />
             <ThemeProvider
                 attribute="class"
                 defaultTheme="dark"

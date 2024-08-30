@@ -19,10 +19,10 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   lastFetched: 0,
   setTransactions: (transactions) => set({ transactions }),
   setLoading: (loading) => set({ loading }),
+  
   fetchTransactions: async () => {
-    const { lastFetched } = get();
-    if (Date.now() - lastFetched < CACHE_DURATION) {
-      set({ loading: false });
+    const { lastFetched, transactions } = get();
+    if (Date.now() - lastFetched < CACHE_DURATION && transactions.length > 0) {
       return;
     }
 
@@ -35,10 +35,9 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : -Infinity;
         return dateB - dateA;
       });
-      set({ transactions: sortedData, lastFetched: Date.now() });
+      set({ transactions: sortedData, lastFetched: Date.now(), loading: false });
     } catch (error) {
       console.error('Error fetching transactions:', error);
-    } finally {
       set({ loading: false });
     }
   },

@@ -11,14 +11,10 @@ const TransactionContext = createContext<TransactionContextType | undefined>(und
 
 export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { transactions, loading, fetchTransactions } = useTransactionStore();
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    if (!initialized) {
-      fetchTransactions().then(r => r);
-      setInitialized(true);
-    }
-  }, [fetchTransactions, initialized]);
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   return (
     <TransactionContext.Provider value={{ transactions, loading }}>
@@ -26,6 +22,7 @@ export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     </TransactionContext.Provider>
   );
 };
+
 
 export const useTransactionContext = () => {
   const context = useContext(TransactionContext);

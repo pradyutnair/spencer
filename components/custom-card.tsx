@@ -31,16 +31,16 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
   const { transactions } = useTransactionContext();
-  const { bankDataLoading, fetchBankData } = useBankStore();
+  const { bankDataLoading } = useBankStore();
   const { dateRange } = useDateRangeStore();
   const { currency } = useCurrencyStore();
 
   const currencySymbol = getCurrencySymbol(currency);
   const [showExpenses, setShowExpenses] = React.useState(true);
 
-  useEffect(() => {
-    fetchBankData();
-  }, [fetchBankData]);
+  // useEffect(() => {
+  //   fetchBankData();
+  // }, [fetchBankData]);
 
   const { currentExpenditure, percentageDifference } = fetchExpenditure(
     transactions,

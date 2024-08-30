@@ -328,7 +328,7 @@ export function TransactionsTable() {
   const [rowSelection] = useState({});
 
   useEffect(() => {
-    fetchTransactions().then(r => console.log('Transactions fetched:', r));
+    fetchTransactions();
   }, [fetchTransactions]);
 
   const table = useReactTable({

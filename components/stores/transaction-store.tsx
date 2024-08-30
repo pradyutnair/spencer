@@ -19,7 +19,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   lastFetched: 0,
   setTransactions: (transactions) => set({ transactions }),
   setLoading: (loading) => set({ loading }),
-  
+
   fetchTransactions: async () => {
     const { lastFetched, transactions } = get();
     if (Date.now() - lastFetched < CACHE_DURATION && transactions.length > 0) {

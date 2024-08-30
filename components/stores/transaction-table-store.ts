@@ -19,9 +19,10 @@ export const useTransactionTableStore = create<TransactionTableState>((set, get)
   setTransactions: (transactions) => set({ transactions }),
   setLoading: (loading) => set({ loading }),
   fetchTransactions: async () => {
-    const { lastFetched, transactions } = get();
-    if (Date.now() - lastFetched < CACHE_DURATION && transactions.length > 0) {
+    const { lastFetched } = get();
+    if (Date.now() - lastFetched < CACHE_DURATION) {
       set({ loading: false });
+      console.log("Using cached data for transactions table");
       return;
     }
 

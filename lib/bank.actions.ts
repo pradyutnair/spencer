@@ -8,6 +8,7 @@ import { ID, Query } from 'node-appwrite';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
 import { pushTransactionsDB } from '@/lib/db.actions';
 import Fuse from 'fuse.js';
+import { shouldSyncNow, recordSync, getTimeUntilNextSync } from './sync-scheduler';
 
 dayjs.extend(weekOfYear);
 
@@ -30,7 +31,6 @@ export const getRequisitions = async () => {
             bankLogo: document.bankLogo,
             reqCreated: document.$createdAt
         }));
-        //console.log("Requisitions received", reqData);
         return reqData;
     } catch (error) {
         console.error('Error getting requisitions:', error);
@@ -54,7 +54,6 @@ export const getAccounts = async ({ requisitionIds }: { requisitionIds: string[]
         const accountsArrays = await Promise.all(accountPromises);
         allAccounts = accountsArrays.flat(); // Flatten the arrays
 
-        //console.log("All accounts received", allAccounts);
         return allAccounts;
     } catch (error) {
         console.error('Error getting accounts:', error);
@@ -62,8 +61,18 @@ export const getAccounts = async ({ requisitionIds }: { requisitionIds: string[]
     }
 };
 
-// Retrieve balances for all accounts associated with the given requisitionIds
+// Retrieve balances for all accounts associated with the given requisitionIds - respecting sync schedule
 export const getBalances = async ({ requisitionIds }: { requisitionIds: string[] }) => {
+    // Check if we should sync with GoCardless now
+    const shouldSync = await shouldSyncNow('balances');
+    
+    if (!shouldSync) {
+        console.log('Skipping GoCardless balance sync - using cached data from Appwrite');
+        // Return balances from Appwrite instead
+        return await getCachedBalances(requisitionIds);
+    }
+    
+    console.log('Syncing balances with GoCardless');
     const client = await createGoCardlessClient();
     let result: { [key: string]: { amount: string, currency: string } } = {};
 
@@ -75,29 +84,118 @@ export const getBalances = async ({ requisitionIds }: { requisitionIds: string[]
         if (!accounts) {
             console.error('No accounts found for the provided requisition ID');
         } else {
+            const balancePromises = accounts.map(async (accountId) => {
+                let account = client.account(accountId);
+                let balances = await account.getBalances();
+                let balanceAmount = balances.balances[0].balanceAmount;
+                return { accountId, amount: balanceAmount.amount, currency: balanceAmount.currency };
+            });
 
-        const balancePromises = accounts.map(async (accountId) => {
-            let account = client.account(accountId);
-            let balances = await account.getBalances();
-            let balanceAmount = balances.balances[0].balanceAmount;
-            return { accountId, amount: balanceAmount.amount, currency: balanceAmount.currency };
-        });
+            const balances = await Promise.all(balancePromises);
 
-        const balances = await Promise.all(balancePromises);
+            balances.forEach(({ accountId, amount, currency }) => {
+                result[accountId] = { amount, currency };
+            });
+            
+            // Cache the balances in Appwrite
+            await cacheBalances(requisitionIds[0], result);
+            
+            // Record this sync operation
+            await recordSync('balances');
 
-        balances.forEach(({ accountId, amount, currency }) => {
-            result[accountId] = { amount, currency };
-        });
-
-        return Object.fromEntries(Object.entries(result).sort(
-          ([, a], [, b]) => parseFloat(b.amount) - parseFloat(a.amount)
-        ));
+            return Object.fromEntries(Object.entries(result).sort(
+              ([, a], [, b]) => parseFloat(b.amount) - parseFloat(a.amount)
+            ));
         }
     } catch (error) {
         console.error('Error getting balances:', error);
-        return null;
+        // Fall back to cached balances in case of an error
+        return await getCachedBalances(requisitionIds);
     }
 };
+
+// Get cached balances from Appwrite
+async function getCachedBalances(requisitionIds: string[]): Promise<{ [key: string]: { amount: string, currency: string } } | null> {
+    const { database } = await createAdminClient();
+    const BALANCE_CACHE_COLLECTION_ID = process.env.APPWRITE_BALANCE_CACHE_COLLECTION_ID || 'balance_cache';
+    
+    try {
+        // If DATABASE_ID is missing, we can't proceed
+        if (!process.env.APPWRITE_DATABASE_ID) {
+            console.warn('DATABASE_ID not set, returning null for cached balances');
+            return null;
+        }
+        
+        const results: { [key: string]: { amount: string, currency: string } } = {};
+        
+        for (const requisitionId of requisitionIds) {
+            try {
+                const cachedData = await database.listDocuments(
+                    process.env.APPWRITE_DATABASE_ID,
+                    BALANCE_CACHE_COLLECTION_ID,
+                    [
+                        Query.equal('requisitionId', requisitionId),
+                        Query.orderDesc('$createdAt'),
+                        Query.limit(1)
+                    ]
+                );
+                
+                if (cachedData.documents.length > 0) {
+                    // Handle both string format (from setup) and object format
+                    const balances = typeof cachedData.documents[0].balances === 'string'
+                        ? JSON.parse(cachedData.documents[0].balances)
+                        : cachedData.documents[0].balances;
+                    
+                    Object.assign(results, balances);
+                }
+            } catch (error) {
+                console.error(`Error getting cached balances for requisitionId ${requisitionId}:`, error);
+                // Continue with other requisitionIds despite this error
+            }
+        }
+        
+        if (Object.keys(results).length === 0) {
+            return null;
+        }
+        
+        return results;
+    } catch (error) {
+        console.error('Error getting cached balances:', error);
+        return null;
+    }
+}
+
+// Cache balances in Appwrite
+async function cacheBalances(requisitionId: string, balances: { [key: string]: { amount: string, currency: string } }): Promise<void> {
+    const { database } = await createAdminClient();
+    const BALANCE_CACHE_COLLECTION_ID = process.env.APPWRITE_BALANCE_CACHE_COLLECTION_ID || 'balance_cache';
+    
+    try {
+        // If DATABASE_ID is missing, we can't proceed
+        if (!process.env.APPWRITE_DATABASE_ID) {
+            console.warn('DATABASE_ID not set, cannot cache balances');
+            return;
+        }
+        
+        // Convert balances to string if needed to ensure it gets stored properly
+        const balancesToStore = typeof balances === 'string' ? balances : JSON.stringify(balances);
+        
+        await database.createDocument(
+            process.env.APPWRITE_DATABASE_ID,
+            BALANCE_CACHE_COLLECTION_ID,
+            ID.unique(),
+            {
+                requisitionId,
+                balances: balancesToStore,
+                timestamp: new Date().toISOString()
+            }
+        );
+        
+        console.log(`Balances for requisition ${requisitionId} cached successfully`);
+    } catch (error) {
+        console.error('Error caching balances:', error);
+    }
+}
 
 // Fetch and return bank data including balances for all requisitions
 export const getBankData = async (): Promise<BankData[]> => {
@@ -177,16 +275,44 @@ export const getBudgetData = async (): Promise<BudgetData[]> => {
     }
 };
 
-
-// Retrieve transactions for a given array of requisitionIds from GC
-export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, dateTo }: { requisitionIds: string[], bankNames?: string[], dateFrom?: string, dateTo?: string }): Promise<Transaction[]> => {
+// Sync-aware version of getGCTransactions
+export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, dateTo, forceSync = false }: 
+    { requisitionIds: string[], bankNames?: string[], dateFrom?: string, dateTo?: string, forceSync?: boolean }): Promise<Transaction[]> => {
+    
+    // Check if we should sync with GoCardless now - unless forceSync is true
+    if (!forceSync) {
+        const shouldSync = await shouldSyncNow('transactions');
+        if (!shouldSync) {
+            console.log('Skipping GoCardless transaction sync - using data from Appwrite');
+            // Instead of calling GoCardless, just get transactions from Appwrite
+            const allTransactions: Transaction[] = [];
+            for (const requisitionId of requisitionIds) {
+                try {
+                    const { database } = await createAdminClient();
+                    const transactions = await database.listDocuments(
+                        process.env.APPWRITE_DATABASE_ID!,
+                        process.env.APPWRITE_TRANSACTION_COLLECTION_ID!,
+                        [
+                            Query.equal('requisitionId', requisitionId),
+                            Query.orderDesc('bookingDate'),
+                            Query.limit(5000)
+                        ]
+                    );
+                    allTransactions.push(...transactions.documents as unknown as Transaction[]);
+                } catch (error) {
+                    console.error(`Error fetching cached transactions for requisition ID ${requisitionId}:`, error);
+                }
+            }
+            return allTransactions;
+        }
+    }
+    
+    console.log(`getGCTransactions LOG: Fetching transactions from GoCardless for ${requisitionIds} requisition IDs`);
     const client = await createGoCardlessClient();
     let allTransactions: Transaction[] = [];
 
     dateTo = dateTo || dayjs().format("YYYY-MM-DD");
     await client.generateToken();
-
-    console.log(`getGCTransactions LOG: Fetching transactions for ${requisitionIds} requisition IDs`);
 
     for (let i = 0; i < requisitionIds.length; i++) {
         const requisitionId = requisitionIds[i];
@@ -214,8 +340,6 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
             const flattenedTransactions = accountTransactions.flat();
             const correctedTransactions = await applyDataCorrections(flattenedTransactions, bankName);
 
-            // console.log(`Corrected transactions for requisition ID ${requisitionId}:`, correctedTransactions);
-
             allTransactions.push(...correctedTransactions);
 
             console.log(`Pushing transactions for ${requisitionId} for ${bankName} to the database`);
@@ -231,7 +355,10 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
         }
     }
 
-
+    // Record this sync operation if it was successful and not forced
+    if (allTransactions.length > 0 && !forceSync) {
+        await recordSync('transactions');
+    }
 
     return allTransactions;
 };
@@ -265,7 +392,6 @@ const checkLatestTransaction = async (requisitionId: string): Promise<string> =>
     }
 };
 
-
 const applyDataCorrections = async (transactions: Transaction[], bankName?: string): Promise<Transaction[]> => {
     console.log(`Applying data corrections to ${transactions.length} transactions for ${bankName}`);
 
@@ -287,16 +413,13 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
 
     const wordsToRemoveStr = new RegExp(wordsToRemove.join('|'), 'i');
 
-    // List of known payees for matching
     const knownPayees = [
         'Spotify', 'Apple', 'Google'
-        // Add more standardized payees here
     ];
 
-    // Fuzzy search options
     const fuse = new Fuse(knownPayees, {
         includeScore: true,
-        threshold: 0.3 // Lower threshold for stricter matching
+        threshold: 0.3
     });
 
     const correctedTransactions: Transaction[] = [];
@@ -333,30 +456,23 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
         }
 
         if (typeof payee === 'string') {
-            // Remove repeated words
             payee = payee.replace(/\b(\w+)\s+\1\b/g, '$1');
-            // Remove .com
             payee = payee.replace(/\.com/g, '');
-            // Remove extra spaces
             payee = payee.replace(/\s+/g, ' ').trim();
-            // Remove special characters and numbers
             payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
-            // Remove combill
             payee = payee.replace(/combill/g, '');
 
-            // Capitalize the first letter of every word
             payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
 
-            // Perform fuzzy matching to find the best match
             const result = fuse.search(payee);
-            if (result.length > 0 && result[0].score! < 0.3) { // Adjust threshold as needed
+            if (result.length > 0 && result[0].score! < 0.3) {
                 payee = result[0].item;
             }
         } else {
             continue;
         }
 
-        let category = await getCategory(payee); // Ensure this line waits for the result
+        let category = await getCategory(payee);
 
         const containsWordsToRemove = wordsToRemoveStr.test(payee);
         const containsWordsToRemoveFirstColumn = wordsToRemoveStr.test(firstColumn);
@@ -394,12 +510,7 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
     return correctedTransactions;
 };
 
-
-
-
-// Wrap your code in an async function
 const getCategory = async (payee: string): Promise<string> => {
-    // Check if payee exists in the database and retrieve category, if not, predict it
     try {
         const { database } = await createAdminClient();
 
@@ -434,11 +545,9 @@ const getCategory = async (payee: string): Promise<string> => {
     } catch (error) {
         return "Uncategorized";
     }
-
 };
 
 export const createAccountBalanceBreakdown = async (bankData: BankData[], currency: string) => {
-    // For each bank, sum the balances for the given currency and return the list of bank names and total balances
     const accountBalances = bankData.map(({ bankName, balances }) => {
         const totalBalance = Object.values(balances).reduce((acc, { amount, currency }) => {
             if (currency === currency) {
@@ -449,7 +558,26 @@ export const createAccountBalanceBreakdown = async (bankData: BankData[], curren
 
         return { bankName, totalBalance };
     });
+};
 
-
-
-}
+export const getSyncStatus = async (): Promise<{ 
+    transactions: { canSyncNow: boolean, timeUntilNextSync: number },
+    balances: { canSyncNow: boolean, timeUntilNextSync: number } 
+}> => {
+    const transactionsCanSync = await shouldSyncNow('transactions');
+    const balancesCanSync = await shouldSyncNow('balances');
+    
+    const transactionsTimeUntilNextSync = await getTimeUntilNextSync('transactions');
+    const balancesTimeUntilNextSync = await getTimeUntilNextSync('balances');
+    
+    return {
+        transactions: {
+            canSyncNow: transactionsCanSync,
+            timeUntilNextSync: transactionsTimeUntilNextSync
+        },
+        balances: {
+            canSyncNow: balancesCanSync,
+            timeUntilNextSync: balancesTimeUntilNextSync
+        }
+    };
+};

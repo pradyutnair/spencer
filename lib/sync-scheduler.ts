@@ -1,283 +1,299 @@
+// FILE: lib/sync-scheduler.ts
 import { createAdminClient } from '@/lib/appwrite';
 import { ID, Query } from 'node-appwrite';
 
-// Reduce number of syncs to avoid rate limits
+// Configurable sync frequencies (adjust as needed, lower numbers mean more frequent)
 const SYNCS_PER_DAY = {
-  transactions: 4, // 4 times per day (every 6 hours)
-  balances: 12     // 12 times per day (every 2 hours)
+  transactions: parseInt(process.env.TRANSACTION_SYNCS_PER_DAY || '4', 10), // e.g., Every 6 hours
+  balances: parseInt(process.env.BALANCE_SYNCS_PER_DAY || '12', 10),        // e.g., Every 2 hours
 };
 
-// Default to 'sync_schedule' if not specified in env variables
 const SYNC_COLLECTION_ID = process.env.APPWRITE_SYNC_COLLECTION_ID || 'sync_schedule';
+const RATE_LIMIT_COLLECTION_ID = process.env.APPWRITE_RATE_LIMIT_COLLECTION_ID || 'rate_limits';
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
-const MS_PER_DAY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-// Time between syncs in milliseconds (dynamic based on type)
+// Calculate interval based on syncs per day
 const getMsBetweenSyncs = (syncType: 'transactions' | 'balances'): number => {
-  return MS_PER_DAY / SYNCS_PER_DAY[syncType];
+  const syncs = SYNCS_PER_DAY[syncType];
+  return syncs > 0 ? MS_PER_DAY / syncs : MS_PER_DAY * 365; // Effectively disable if 0
 };
 
-// In-memory cache for last sync time
-const inMemorySyncCache = {
-  transactions: 0, // timestamp of last sync
-  balances: 0      // timestamp of last sync
-};
+// In-memory cache for last sync time (avoids DB lookup for recent syncs)
+const inMemorySyncCache: Record<string, number> = {}; // { 'transactions': timestamp, 'balances': timestamp }
+const inMemoryRateLimitCache = { expiresAt: 0 }; // Cache rate limit expiry
 
-// Add jitter to avoid all users syncing at the same time
+// Adds a small random variation to sync times to distribute load
 function addJitter(ms: number): number {
-  const jitterPercent = 0.1; // 10% jitter
+  const jitterPercent = 0.05; // 5% jitter
   const jitterAmount = ms * jitterPercent;
   return ms + (Math.random() * jitterAmount * 2 - jitterAmount);
 }
 
-// Function to check if it's time to sync
-export async function shouldSyncNow(syncType: 'transactions' | 'balances'): Promise<boolean> {
+// Check if GoCardless API is currently rate limited
+async function checkRateLimitState(): Promise<{ limited: boolean, expiresAt: number }> {
+  const now = Date.now();
+
+  // Check in-memory cache first
+  if (inMemoryRateLimitCache.expiresAt > now) {
+    console.log(`Rate limit check (memory cache): Limited until ${new Date(inMemoryRateLimitCache.expiresAt).toISOString()}`);
+    return { limited: true, expiresAt: inMemoryRateLimitCache.expiresAt };
+  }
+
+  if (!DATABASE_ID || !RATE_LIMIT_COLLECTION_ID) {
+    console.warn('Rate limit check skipped: DATABASE_ID or RATE_LIMIT_COLLECTION_ID not set.');
+    return { limited: false, expiresAt: 0 };
+  }
+
   try {
-    // First check if we're currently rate limited
     const { database } = await createAdminClient();
+    const rateLimits = await database.listDocuments(
+      DATABASE_ID,
+      RATE_LIMIT_COLLECTION_ID,
+      [
+        Query.equal('service', 'gocardless'),
+        Query.greaterThan('expiresAt', new Date().toISOString()), // Find entries where expiry is in the future
+        Query.orderDesc('expiresAt'), // Get the latest expiry time
+        Query.limit(1)
+      ]
+    );
 
-    try {
-      // Check for active rate limits
-      const rateLimitCollection = process.env.APPWRITE_RATE_LIMIT_COLLECTION_ID || 'rate_limits';
-      const rateLimits = await database.listDocuments(
-        DATABASE_ID!,
-        rateLimitCollection,
-        [
-          Query.equal('service', 'gocardless'),
-          Query.greaterThan('expiresAt', new Date().toISOString())
-        ]
-      );
-      
-      if (rateLimits.documents.length > 0) {
-        console.log(`Rate limit active, skipping ${syncType} sync`);
-        return false;
-      }
-    } catch (error) {
-      console.warn('Error checking rate limits:', error);
-      // Continue checking sync schedule
+    if (rateLimits.documents.length > 0) {
+      const expiryTime = new Date(rateLimits.documents[0].expiresAt).getTime();
+      // Update memory cache
+      inMemoryRateLimitCache.expiresAt = expiryTime;
+      console.log(`Rate limit check (DB): Limited until ${new Date(expiryTime).toISOString()}`);
+      return { limited: true, expiresAt: expiryTime };
     }
 
-    if (!DATABASE_ID) {
-      console.warn('DATABASE_ID not set, defaulting to sync allowed');
-      return true;
-    }
-    
-    // Calculate dynamic MS_BETWEEN_SYNCS based on type
-    const MS_BETWEEN_SYNCS = getMsBetweenSyncs(syncType);
-    
-    // First check in-memory cache to avoid unnecessary DB calls
-    const lastSyncTime = inMemorySyncCache[syncType];
-    if (lastSyncTime > 0) {
-      const currentTime = Date.now();
-      const timePassed = currentTime - lastSyncTime;
-      const shouldSync = timePassed > addJitter(MS_BETWEEN_SYNCS);
-      
-      if (shouldSync) {
-        console.log(`Time to sync ${syncType} (from memory cache): Last sync was ${Math.round(timePassed/60000)} minutes ago`);
-      }
-      
-      return shouldSync;
-    }
-
-    // Only try to access the database if we have a collection ID
-    if (SYNC_COLLECTION_ID) {
-      try {
-        // Get the last sync record for this type
-        const syncRecords = await database.listDocuments(
-          DATABASE_ID,
-          SYNC_COLLECTION_ID,
-          [
-            Query.equal('syncType', syncType),
-            Query.orderDesc('$createdAt'),
-            Query.limit(1)
-          ]
-        );
-
-        // If no record found, it's time to sync
-        if (!syncRecords.documents.length) {
-          console.log(`No previous sync record found for ${syncType}, syncing now`);
-          return true;
-        }
-
-        // Get the last sync time
-        const lastSyncTime = new Date(syncRecords.documents[0].$createdAt).getTime();
-        const currentTime = Date.now();
-        
-        // Update in-memory cache
-        inMemorySyncCache[syncType] = lastSyncTime;
-        
-        // If it's been at least MS_BETWEEN_SYNCS since the last sync, it's time to sync
-        const timePassed = currentTime - lastSyncTime;
-        const shouldSync = timePassed > addJitter(MS_BETWEEN_SYNCS);
-        
-        if (shouldSync) {
-          console.log(`Time to sync ${syncType} (from DB): Last sync was ${Math.round(timePassed/60000)} minutes ago`);
-        } else {
-          console.log(`Not time to sync ${syncType} yet: Last sync was ${Math.round(timePassed/60000)} minutes ago, next sync in ${Math.round((MS_BETWEEN_SYNCS - timePassed)/60000)} minutes`);
-        }
-        
-        return shouldSync;
-      } catch (error) {
-        console.error(`Error checking sync schedule for ${syncType}:`, error);
-        // In case of DB error, use in-memory cache or default to allowing sync
-        if (inMemorySyncCache[syncType] > 0) {
-          const currentTime = Date.now();
-          return currentTime - inMemorySyncCache[syncType] > addJitter(MS_BETWEEN_SYNCS);
-        }
-        return true;
-      }
-    } else {
-      console.warn('SYNC_COLLECTION_ID not set, defaulting to sync allowed. Please set this in your environment variables.');
-      return true;
-    }
+    // Not rate limited, clear memory cache expiry
+    inMemoryRateLimitCache.expiresAt = 0;
+    return { limited: false, expiresAt: 0 };
   } catch (error) {
-    console.error(`Error in shouldSyncNow for ${syncType}:`, error);
+    console.error('Error checking rate limit state from DB:', error);
+    // Assume not rate limited if check fails to avoid blocking unnecessarily
+    return { limited: false, expiresAt: 0 };
+  }
+}
+
+// Function to check if it's time to sync, considering rate limits
+export async function shouldSyncNow(syncType: 'transactions' | 'balances'): Promise<boolean> {
+  // 1. Check Rate Limit Status
+  const rateLimitStatus = await checkRateLimitState();
+  if (rateLimitStatus.limited) {
+    console.log(`Sync blocked for ${syncType}: Rate limit active until ${new Date(rateLimitStatus.expiresAt).toISOString()}.`);
+    return false;
+  }
+
+  // 2. Check Sync Schedule
+  const MS_BETWEEN_SYNCS = getMsBetweenSyncs(syncType);
+  const lastSyncMemory = inMemorySyncCache[syncType] || 0;
+  const now = Date.now();
+
+  // Use memory cache if recent enough
+  if (lastSyncMemory > 0 && (now - lastSyncMemory) < MS_BETWEEN_SYNCS) {
+     console.log(`Sync check (memory): Not time to sync ${syncType} yet. Last sync: ${new Date(lastSyncMemory).toISOString()}`);
+     return false;
+  }
+
+  // Fallback to DB check if memory cache is old or empty
+  if (!DATABASE_ID || !SYNC_COLLECTION_ID) {
+    console.warn(`Sync schedule check skipped for ${syncType}: DATABASE_ID or SYNC_COLLECTION_ID not set. Allowing sync.`);
+    return true;
+  }
+
+  try {
+    const { database } = await createAdminClient();
+    const syncRecords = await database.listDocuments(
+      DATABASE_ID,
+      SYNC_COLLECTION_ID,
+      [
+        Query.equal('syncType', syncType),
+        Query.orderDesc('$createdAt'),
+        Query.limit(1)
+      ]
+    );
+
+    if (!syncRecords.documents.length) {
+      console.log(`Sync check (DB): No previous sync record for ${syncType}, syncing now.`);
+      return true; // First sync for this type
+    }
+
+    const lastSyncDb = new Date(syncRecords.documents[0].$createdAt).getTime();
+    inMemorySyncCache[syncType] = lastSyncDb; // Update memory cache
+
+    const timePassed = now - lastSyncDb;
+    const shouldSync = timePassed >= addJitter(MS_BETWEEN_SYNCS); // Add jitter
+
+    if (shouldSync) {
+      console.log(`Sync check (DB): Time to sync ${syncType}. Last sync: ${new Date(lastSyncDb).toISOString()}`);
+    } else {
+      const timeRemaining = MS_BETWEEN_SYNCS - timePassed;
+      console.log(`Sync check (DB): Not time to sync ${syncType} yet. Last sync: ${new Date(lastSyncDb).toISOString()}. Wait ${Math.round(timeRemaining / 60000)} min.`);
+    }
+    return shouldSync;
+
+  } catch (error) {
+    console.error(`Error checking sync schedule from DB for ${syncType}:`, error);
+    // Allow sync if DB check fails to avoid getting stuck
     return true;
   }
 }
 
 // Function to record a sync has occurred
 export async function recordSync(syncType: 'transactions' | 'balances'): Promise<void> {
+  const now = Date.now();
+  const currentTimeISO = new Date(now).toISOString();
+
+  // Always update in-memory cache immediately
+  inMemorySyncCache[syncType] = now;
+  console.log(`Sync recorded (memory) for ${syncType} at ${currentTimeISO}`);
+
+  if (!DATABASE_ID || !SYNC_COLLECTION_ID) {
+    console.warn(`Sync record skipped (DB) for ${syncType}: DATABASE_ID or SYNC_COLLECTION_ID not set.`);
+    return;
+  }
+
   try {
-    // Always update in-memory cache
-    inMemorySyncCache[syncType] = Date.now();
-    
-    // Only try to write to DB if we have both DATABASE_ID and SYNC_COLLECTION_ID
-    if (!DATABASE_ID || !SYNC_COLLECTION_ID) {
-      console.warn('DATABASE_ID or SYNC_COLLECTION_ID not set, sync recorded only in memory');
-      return;
-    }
-    
     const { database } = await createAdminClient();
-    
-    try {
-      await database.createDocument(
-        DATABASE_ID,
-        SYNC_COLLECTION_ID,
-        ID.unique(),
-        {
-          syncType,
-          timestamp: new Date().toISOString(),
-        }
-      );
-      
-      console.log(`${syncType} sync recorded at ${new Date().toISOString()}`);
-      
-      // Clean up old sync records to prevent collection from growing too large
-      try {
-        const oldRecords = await database.listDocuments(
-          DATABASE_ID,
-          SYNC_COLLECTION_ID,
-          [
-            Query.equal('syncType', syncType),
-            Query.orderDesc('$createdAt'),
-            Query.offset(50) // Keep the 50 most recent records
-          ]
-        );
-        
-        // Delete old records in parallel
-        const deletePromises = oldRecords.documents.map(doc => 
-          database.deleteDocument(DATABASE_ID!, SYNC_COLLECTION_ID!, doc.$id)
-        );
-        
-        await Promise.allSettled(deletePromises);
-      } catch (cleanupError) {
-        console.warn(`Non-critical error cleaning up old ${syncType} sync records:`, cleanupError);
+    await database.createDocument(
+      DATABASE_ID,
+      SYNC_COLLECTION_ID,
+      ID.unique(),
+      {
+        syncType,
+        timestamp: currentTimeISO, // Use consistent ISO timestamp
       }
-    } catch (error) {
-      console.error(`Error recording ${syncType} sync in database:`, error);
-      // Already updated in-memory cache, so we're still good
-    }
+    );
+    console.log(`Sync recorded (DB) for ${syncType} at ${currentTimeISO}`);
+
+    // Optional: Clean up old records (consider running this less frequently if performance is an issue)
+    // cleanupOldSyncRecords(database, syncType);
+
   } catch (error) {
-    console.error(`Error in recordSync for ${syncType}:`, error);
+    console.error(`Error recording sync in database for ${syncType}:`, error);
   }
 }
 
-// Function to get the time until next sync is allowed
+// Function to get the estimated time until the next sync is allowed (in milliseconds)
 export async function getTimeUntilNextSync(syncType: 'transactions' | 'balances'): Promise<number> {
+  // 1. Check Rate Limit First
+   const rateLimitStatus = await checkRateLimitState();
+   if (rateLimitStatus.limited) {
+     return Math.max(0, rateLimitStatus.expiresAt - Date.now());
+   }
+
+  // 2. Check Sync Schedule
+  const MS_BETWEEN_SYNCS = getMsBetweenSyncs(syncType);
+  const lastSyncMemory = inMemorySyncCache[syncType] || 0;
+  const now = Date.now();
+
+  // Prioritize memory cache
+  if (lastSyncMemory > 0) {
+    const timePassed = now - lastSyncMemory;
+    return Math.max(0, MS_BETWEEN_SYNCS - timePassed);
+  }
+
+  // Fallback to DB
+  if (!DATABASE_ID || !SYNC_COLLECTION_ID) return 0; // Allow immediately if no config
+
   try {
-    // Calculate dynamic MS_BETWEEN_SYNCS based on type
-    const MS_BETWEEN_SYNCS = getMsBetweenSyncs(syncType);
-    
-    // Check for rate limits first
     const { database } = await createAdminClient();
-    try {
-      const rateLimitCollection = process.env.APPWRITE_RATE_LIMIT_COLLECTION_ID || 'rate_limits';
-      const rateLimits = await database.listDocuments(
-        DATABASE_ID!,
-        rateLimitCollection,
-        [
-          Query.equal('service', 'gocardless'),
-          Query.greaterThan('expiresAt', new Date().toISOString()),
-          Query.orderDesc('expiresAt')
-        ]
-      );
-      
-      if (rateLimits.documents.length > 0) {
-        const expiryTime = new Date(rateLimits.documents[0].expiresAt).getTime();
-        const currentTime = Date.now();
-        const timeUntilRateLimitExpires = Math.max(0, expiryTime - currentTime);
-        
-        // Return the rate limit time as that's what we need to wait for first
-        return timeUntilRateLimitExpires;
-      }
-    } catch (error) {
-      console.warn('Error checking rate limits for next sync time:', error);
-    }
-    
-    // First check in-memory cache
-    const lastSyncTime = inMemorySyncCache[syncType];
-    if (lastSyncTime > 0) {
-      const currentTime = Date.now();
-      const timePassedSinceLastSync = currentTime - lastSyncTime;
-      
-      if (timePassedSinceLastSync >= MS_BETWEEN_SYNCS) {
-        return 0; // It's already time to sync
-      }
-      
-      return MS_BETWEEN_SYNCS - timePassedSinceLastSync;
-    }
-    
-    // If we don't have a valid DATABASE_ID or SYNC_COLLECTION_ID, allow sync immediately
-    if (!DATABASE_ID || !SYNC_COLLECTION_ID) {
-      console.warn('DATABASE_ID or SYNC_COLLECTION_ID not set, defaulting to sync allowed now');
-      return 0;
-    }
-    
-    try {
-      const syncRecords = await database.listDocuments(
-        DATABASE_ID,
-        SYNC_COLLECTION_ID,
-        [
-          Query.equal('syncType', syncType),
-          Query.orderDesc('$createdAt'),
-          Query.limit(1)
-        ]
-      );
-      
-      if (!syncRecords.documents.length) {
-        return 0; // No records, sync is allowed immediately
-      }
-      
-      const lastSyncTime = new Date(syncRecords.documents[0].$createdAt).getTime();
-      const currentTime = Date.now();
-      const timePassedSinceLastSync = currentTime - lastSyncTime;
-      
-      // Update in-memory cache
-      inMemorySyncCache[syncType] = lastSyncTime;
-      
-      if (timePassedSinceLastSync >= MS_BETWEEN_SYNCS) {
-        return 0; // It's already time to sync
-      }
-      
-      return MS_BETWEEN_SYNCS - timePassedSinceLastSync;
-    } catch (error) {
-      console.error(`Error calculating time until next ${syncType} sync:`, error);
-      // Default to "now" if there's an error
-      return 0;
-    }
+    const syncRecords = await database.listDocuments(
+      DATABASE_ID,
+      SYNC_COLLECTION_ID,
+      [Query.equal('syncType', syncType), Query.orderDesc('$createdAt'), Query.limit(1)]
+    );
+
+    if (!syncRecords.documents.length) return 0; // Allow immediately if no record
+
+    const lastSyncDb = new Date(syncRecords.documents[0].$createdAt).getTime();
+    inMemorySyncCache[syncType] = lastSyncDb; // Update cache
+    const timePassed = now - lastSyncDb;
+    return Math.max(0, MS_BETWEEN_SYNCS - timePassed);
+
   } catch (error) {
-    console.error(`Error in getTimeUntilNextSync for ${syncType}:`, error);
-    return 0;
+    console.error(`Error getting time until next sync for ${syncType}:`, error);
+    return 0; // Allow immediately on error
+  }
+}
+
+// Function to record a rate limit hit
+export async function recordRateLimit(resetSeconds: number): Promise<void> {
+    const now = Date.now();
+    const expiresAt = now + resetSeconds * 1000;
+    const expiresAtISO = new Date(expiresAt).toISOString();
+    const hitAtISO = new Date(now).toISOString();
+
+    // Update in-memory cache immediately
+    inMemoryRateLimitCache.expiresAt = expiresAt;
+    console.log(`Rate limit recorded (memory). Expires at: ${expiresAtISO}`);
+
+    if (!DATABASE_ID || !RATE_LIMIT_COLLECTION_ID) {
+        console.warn('Rate limit record skipped (DB): DATABASE_ID or RATE_LIMIT_COLLECTION_ID not set.');
+        return;
+    }
+
+    try {
+        const { database } = await createAdminClient();
+
+        // Optional: Clean up expired rate limit entries before creating a new one
+        try {
+           const expiredLimits = await database.listDocuments(
+             DATABASE_ID,
+             RATE_LIMIT_COLLECTION_ID,
+             [
+               Query.equal('service', 'gocardless'),
+               Query.lessThanEqual('expiresAt', new Date().toISOString())
+             ]
+           );
+           for (const doc of expiredLimits.documents) {
+             await database.deleteDocument(DATABASE_ID, RATE_LIMIT_COLLECTION_ID, doc.$id);
+           }
+        } catch(cleanupError) {
+            console.warn("Failed to cleanup expired rate limits:", cleanupError)
+        }
+
+
+        await database.createDocument(
+            DATABASE_ID,
+            RATE_LIMIT_COLLECTION_ID,
+            ID.unique(),
+            {
+                service: 'gocardless',
+                hitAt: hitAtISO,
+                expiresAt: expiresAtISO,
+                resetSeconds: resetSeconds
+            }
+        );
+        console.log(`Rate limit recorded (DB). Expires in ${resetSeconds} seconds at ${expiresAtISO}`);
+    } catch (error) {
+        console.error('Error recording rate limit in DB:', error);
+    }
+}
+
+// Optional: Helper function to clean up old sync records
+async function cleanupOldSyncRecords(database: any, syncType: string) {
+  try {
+    const cutoffDate = new Date(Date.now() - 7 * MS_PER_DAY).toISOString(); // Keep 7 days of records
+    const oldRecords = await database.listDocuments(
+      DATABASE_ID!,
+      SYNC_COLLECTION_ID!,
+      [
+        Query.equal('syncType', syncType),
+        Query.lessThan('$createdAt', cutoffDate),
+        Query.limit(100) // Process in batches
+      ]
+    );
+
+    if (oldRecords.documents.length > 0) {
+       console.log(`Cleaning up ${oldRecords.documents.length} old sync records for ${syncType}...`);
+       const deletePromises = oldRecords.documents.map((doc: any) =>
+         database.deleteDocument(DATABASE_ID!, SYNC_COLLECTION_ID!, doc.$id)
+       );
+       await Promise.allSettled(deletePromises);
+    }
+  } catch (cleanupError) {
+    console.warn(`Error cleaning up old ${syncType} sync records:`, cleanupError);
   }
 }

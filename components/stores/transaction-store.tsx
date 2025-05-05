@@ -1,7 +1,10 @@
-// stores/transaction-store.ts
+// FILE: components/stores/transaction-store.tsx
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { Transaction } from '@/types/index';
+
+// Cache duration: 30 minutes (more frequent than balances potentially)
+const CACHE_DURATION = 30 * 60 * 1000;
 
 interface TransactionState {
   transactions: Transaction[];
@@ -9,287 +12,170 @@ interface TransactionState {
   loading: boolean;
   lastFetched: number;
   error: string | null;
-  setTransactions: (transactions: Transaction[]) => void;
-  addBankTransactions: (transactions: Transaction[], bankId: string) => void;
+  setTransactions: (transactions: Transaction[], bankTransactions?: Record<string, Transaction[]>) => void;
   setLoading: (loading: boolean) => void;
-  fetchTransactions: () => Promise<void>;
-  getFilteredTransactions: (bankIds?: string[]) => Transaction[];
-  refreshTransactions: () => Promise<void>;
+  setError: (error: string | null) => void;
+  fetchTransactions: (forceRefresh?: boolean) => Promise<void>;
+  refreshTransactions: () => Promise<void>; // Keep explicit refresh if needed elsewhere
 }
 
-// Increased from 30 minutes to 1 hour to reduce API calls
-const CACHE_DURATION = 60 * 60 * 1000;
-
-// Function to load initial data from local storage
-const loadInitialData = () => {
+// Function to load initial state safely
+const loadInitialState = (): Omit<TransactionState, 'setTransactions' | 'setLoading' | 'setError' | 'fetchTransactions' | 'refreshTransactions'> => {
   try {
+    if (typeof window === 'undefined') {
+      return { transactions: [], transactionsByBank: {}, loading: true, lastFetched: 0, error: null };
+    }
     const storedData = localStorage.getItem('transactions-storage');
-    if (!storedData) return { transactions: [], transactionsByBank: {}, lastFetched: 0 };
-    
+    if (!storedData) return { transactions: [], transactionsByBank: {}, loading: true, lastFetched: 0, error: null };
+
     const parsedData = JSON.parse(storedData);
-    if (!parsedData.state) return { transactions: [], transactionsByBank: {}, lastFetched: 0 };
-    
+    const state = parsedData?.state;
+    const transactions = state?.transactions || [];
+    const transactionsByBank = state?.transactionsByBank || {};
+    const lastFetched = state?.lastFetched || 0;
+    const isCacheExpired = Date.now() - lastFetched > CACHE_DURATION;
+
     return {
-      transactions: parsedData.state.transactions || [],
-      transactionsByBank: parsedData.state.transactionsByBank || {},
-      lastFetched: parsedData.state.lastFetched || 0
+      transactions: transactions,
+      transactionsByBank: transactionsByBank,
+      loading: transactions.length === 0 || isCacheExpired,
+      lastFetched: lastFetched,
+      error: null,
     };
   } catch (error) {
-    console.error('Error loading initial transaction data:', error);
-    return { transactions: [], transactionsByBank: {}, lastFetched: 0 };
+    console.error('Error loading initial transaction data from storage:', error);
+    return { transactions: [], transactionsByBank: {}, loading: true, lastFetched: 0, error: null };
   }
 };
 
-// Get initial data before creating store
-const initialData = typeof window !== 'undefined' ? loadInitialData() : { transactions: [], transactionsByBank: {}, lastFetched: 0 };
+const initialState = loadInitialState();
+
+// Helper to group transactions by bank
+const groupTransactionsByBank = (transactions: Transaction[]): Record<string, Transaction[]> => {
+  return transactions.reduce((acc, transaction) => {
+    // Use a default 'unknown_bank' if Bank property is missing
+    const bankId = transaction.Bank || 'unknown_bank';
+    acc[bankId] = acc[bankId] || [];
+
+    // Simple duplicate check based on transactionId within the same bank group being built
+    const isDuplicate = acc[bankId].some(t => t.transactionId === transaction.transactionId);
+    if (!isDuplicate) {
+      acc[bankId].push(transaction);
+    }
+    return acc;
+  }, {} as Record<string, Transaction[]>);
+};
+
+// Helper to sort transactions
+const sortTransactions = (transactions: Transaction[]): Transaction[] => {
+   return transactions.sort((a, b) => {
+      const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() :
+                  (a.bookingDate ? new Date(a.bookingDate).getTime() : -Infinity);
+      const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() :
+                  (b.bookingDate ? new Date(b.bookingDate).getTime() : -Infinity);
+      // Handle potential NaN results from invalid dates
+      const timeA = isNaN(dateA) ? -Infinity : dateA;
+      const timeB = isNaN(dateB) ? -Infinity : dateB;
+      return timeB - timeA; // Descending order
+    });
+};
+
 
 export const useTransactionStore = create<TransactionState>()(
   persist(
     (set, get) => ({
-      transactions: initialData.transactions,
-      transactionsByBank: initialData.transactionsByBank,
-      loading: initialData.transactions.length === 0,
-      lastFetched: initialData.lastFetched,
-      error: null,
-      
-      setTransactions: (transactions) => set({ 
-        transactions,
-        transactionsByBank: transactions.reduce((acc, transaction) => {
-          const bankId = transaction.Bank || 'unknown';
-          acc[bankId] = acc[bankId] || [];
-          
-          const isDuplicate = acc[bankId].some(t => 
-            t.transactionId === transaction.transactionId && 
-            t.bookingDate === transaction.bookingDate
-          );
-          
-          if (!isDuplicate) {
-            acc[bankId].push(transaction);
-          }
-          
-          return acc;
-        }, {} as Record<string, Transaction[]>)
-      }),
-      
-      addBankTransactions: (transactions, bankId) => {
-        const currentTransactions = [...get().transactions];
-        const currentBankTransactions = { ...get().transactionsByBank };
-        
-        const newTransactionIds = new Set(transactions.map(t => t.transactionId));
-        
-        const filteredCurrentTransactions = currentTransactions.filter(
-          t => !newTransactionIds.has(t.transactionId)
-        );
-        
-        const combinedTransactions = [...filteredCurrentTransactions, ...transactions];
-        
-        const sortedTransactions = combinedTransactions.sort((a, b) => {
-          const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : 
-                      (a.bookingDate ? new Date(a.bookingDate).getTime() : -Infinity);
-          const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : 
-                      (b.bookingDate ? new Date(b.bookingDate).getTime() : -Infinity);
-          return dateB - dateA;
+      transactions: initialState.transactions,
+      transactionsByBank: initialState.transactionsByBank,
+      loading: initialState.loading,
+      lastFetched: initialState.lastFetched,
+      error: initialState.error,
+
+      setTransactions: (transactions, bankTransactions) => {
+        const sortedTxs = sortTransactions(transactions);
+        const groupedTxs = bankTransactions || groupTransactionsByBank(sortedTxs);
+        set({
+          transactions: sortedTxs,
+          transactionsByBank: groupedTxs,
+          loading: false,
+          error: null,
+          lastFetched: Date.now(),
         });
-        
-        currentBankTransactions[bankId] = transactions;
-        
-        set({ 
-          transactions: sortedTransactions, 
-          transactionsByBank: currentBankTransactions,
-          lastFetched: Date.now()
-        });
-      },
-      
-      setLoading: (loading) => set({ loading }),
-      
-      getFilteredTransactions: (bankIds) => {
-        const { transactions, transactionsByBank } = get();
-        
-        if (!bankIds || bankIds.length === 0) {
-          return transactions;
-        }
-        
-        return bankIds.flatMap(bankId => 
-          transactionsByBank[bankId] || []
-        );
       },
 
-      fetchTransactions: async () => {
+      setLoading: (loading) => set({ loading }),
+      setError: (error) => set({ error, loading: false }),
+
+      fetchTransactions: async (forceRefresh = false) => {
         const { lastFetched, transactions } = get();
-        
-        // Return immediately if we have cached data that's fresh enough
-        if (Date.now() - lastFetched < CACHE_DURATION && transactions.length > 0) {
-          console.log('Using cached transactions', transactions.length);
+        const now = Date.now();
+        const isCacheValid = now - lastFetched < CACHE_DURATION && transactions.length > 0;
+
+        if (isCacheValid && !forceRefresh) {
+          console.log('Using valid cached transaction data.');
+          set({ loading: false, error: null }); // Ensure loading is false
           return;
         }
 
+        console.log(forceRefresh ? 'Forcing refresh of transaction data.' : 'Fetching fresh transaction data (cache expired or empty).');
         set({ loading: true, error: null });
-        
+
         try {
-          // First try to get data from cache quickly to show something
-          const cachedResponse = await fetch('/api/transactions?source=cache', {
-            cache: 'no-store' // Prevent browser caching - we'll handle that ourselves
-          });
-          
-          if (cachedResponse.ok) {
-            const cachedData: Transaction[] = await cachedResponse.json();
-            if (cachedData && cachedData.length > 0) {
-              set({ transactions: cachedData, loading: false });
-              console.log('Loaded initial data from cache', cachedData.length);
-            }
-          }
-          
-          // Then fetch the latest data from our API with bank grouping
-          const response = await fetch('/api/transactions?bankGrouping=true', {
-            cache: 'no-store' // Prevent browser caching
-          });
-          
+          // Fetch grouped data directly
+          const apiUrl = forceRefresh ? '/api/transactions?refresh=true&bankGrouping=true' : '/api/transactions?bankGrouping=true';
+          const response = await fetch(apiUrl, { cache: 'no-store' });
+
           if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ error: 'Failed to fetch transactions' }));
+            throw new Error(errorData.error || `API Error: ${response.status}`);
           }
-          
+
           const data = await response.json();
-          
+
           if (data.bankTransactions) {
-            const allTransactions: Transaction[] = [];
-            const bankTransactions: Record<string, Transaction[]> = {};
-            
-            Object.entries(data.bankTransactions).forEach(([bankId, transactions]: [string, any]) => {
-              const bankTransactionsList = transactions as Transaction[];
-              bankTransactions[bankId] = bankTransactionsList;
-              allTransactions.push(...bankTransactionsList);
+            let allTransactions: Transaction[] = [];
+            const fetchedBankTransactions: Record<string, Transaction[]> = {};
+
+            Object.entries(data.bankTransactions).forEach(([bankId, txs]: [string, any]) => {
+               const bankTxsList = txs as Transaction[];
+               fetchedBankTransactions[bankId] = bankTxsList;
+               allTransactions.push(...bankTxsList);
             });
-            
-            const sortedTransactions = allTransactions.sort((a, b) => {
-              const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : 
-                          (a.bookingDate ? new Date(a.bookingDate).getTime() : -Infinity);
-              const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : 
-                          (b.bookingDate ? new Date(b.bookingDate).getTime() : -Infinity);
-              return dateB - dateA;
-            });
-            
-            set({ 
-              transactions: sortedTransactions, 
-              transactionsByBank: bankTransactions,
-              lastFetched: Date.now(), 
-              loading: false 
-            });
-            
-            console.log('Processed bank-grouped transactions', Object.keys(bankTransactions).length);
+
+            get().setTransactions(allTransactions, fetchedBankTransactions); // Use the setter
+            console.log('Successfully fetched/updated grouped transaction data.');
+
           } else {
-            const sortedData = data.sort((a: Transaction, b: Transaction) => {
-              const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : 
-                          (a.bookingDate ? new Date(a.bookingDate).getTime() : -Infinity);
-              const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : 
-                          (b.bookingDate ? new Date(b.bookingDate).getTime() : -Infinity);
-              return dateB - dateA;
-            });
-            
-            set({ transactions: sortedData, lastFetched: Date.now(), loading: false });
-            console.log('Processed flat transaction list', sortedData.length);
+             // Handle case where API might return flat list (fallback)
+             console.warn("API did not return grouped transactions, processing flat list.");
+             get().setTransactions(data); // Use the setter
           }
+
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching transactions';
           console.error('Error fetching transactions:', error);
-          set({ error: error instanceof Error ? error.message : 'Unknown error', loading: false });
+          set({ error: errorMessage, loading: false });
+          // Keep existing data if fetch fails
         }
       },
-      
+
+      // Kept refreshTransactions in case it's used for explicit user actions
       refreshTransactions: async () => {
-        set({ loading: true, error: null });
-        try {
-          const response = await fetch('/api/transactions?refresh=true&bankGrouping=true', {
-            cache: 'no-store' // Prevent browser caching
-          });
-          
-          if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          
-          if (data.bankTransactions) {
-            const allTransactions: Transaction[] = [];
-            const bankTransactions: Record<string, Transaction[]> = {};
-            
-            Object.entries(data.bankTransactions).forEach(([bankId, transactions]: [string, any]) => {
-              const bankTransactionsList = transactions as Transaction[];
-              bankTransactions[bankId] = bankTransactionsList;
-              allTransactions.push(...bankTransactionsList);
-            });
-            
-            const sortedTransactions = allTransactions.sort((a, b) => {
-              const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : 
-                          (a.bookingDate ? new Date(a.bookingDate).getTime() : -Infinity);
-              const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : 
-                          (b.bookingDate ? new Date(b.bookingDate).getTime() : -Infinity);
-              return dateB - dateA;
-            });
-            
-            set({ 
-              transactions: sortedTransactions, 
-              transactionsByBank: bankTransactions,
-              lastFetched: Date.now(), 
-              loading: false 
-            });
-          } else {
-            const sortedData = data.sort((a: Transaction, b: Transaction) => {
-              const dateA = a.bookingDateTime ? new Date(a.bookingDateTime).getTime() : 
-                          (a.bookingDate ? new Date(a.bookingDate).getTime() : -Infinity);
-              const dateB = b.bookingDateTime ? new Date(b.bookingDateTime).getTime() : 
-                          (b.bookingDate ? new Date(b.bookingDate).getTime() : -Infinity);
-              return dateB - dateA;
-            });
-            
-            set({ transactions: sortedData, lastFetched: Date.now(), loading: false });
-          }
-        } catch (error) {
-          console.error('Error refreshing transactions:', error);
-          set({ error: error instanceof Error ? error.message : 'Unknown error', loading: false });
-        }
-      }
+        console.log('Explicitly refreshing transactions...');
+        await get().fetchTransactions(true);
+      },
     }),
     {
-      name: 'transactions-storage',
-      storage: createJSONStorage(() => {
-        if (typeof window !== 'undefined') {
-          return {
-            getItem: async (name) => {
-              try {
-                const storedItem = localStorage.getItem(name);
-                return storedItem ? JSON.parse(storedItem) : null;
-              } catch (error) {
-                console.error('Error retrieving from storage:', error);
-                return null;
-              }
-            },
-            setItem: async (name, value) => {
-              try {
-                localStorage.setItem(name, JSON.stringify(value));
-              } catch (error) {
-                console.error('Error storing data:', error);
-              }
-            },
-            removeItem: async (name) => {
-              try {
-                localStorage.removeItem(name);
-              } catch (error) {
-                console.error('Error removing from storage:', error);
-              }
-            },
-          };
-        } else {
-          return {
-            getItem: async () => null,
-            setItem: async () => {},
-            removeItem: async () => {},
-          };
-        }
-      }),
-      partialize: (state) => ({ 
+      name: 'transactions-storage', // unique name
+      storage: createJSONStorage(() => localStorage), // use localStorage
+      partialize: (state) => ({
         transactions: state.transactions,
         transactionsByBank: state.transactionsByBank,
-        lastFetched: state.lastFetched 
+        lastFetched: state.lastFetched,
+        // Don't persist loading or error states
       }),
     }
   )
 );
+
+// Remove transaction-table-store.ts as its functionality is covered here.
+// If you need a separate view/subset, derive it from useTransactionStore.

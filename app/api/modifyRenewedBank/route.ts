@@ -15,8 +15,43 @@ export async function POST(request: NextRequest) {
     }
 
     const { database } = await createAdminClient();
+    
+    // First, verify that the new requisition is valid and authorized
+    try {
+      const client = await createGoCardlessClient();
+      await client.generateToken();
+      
+      // Get the new requisition status from GoCardless
+      const newRequisition = await client.requisition.getRequisitionById(newRequisitionId);
+      
+      // Check if the new requisition is valid (GA = granted access)
+      if (newRequisition.status !== 'GA') {
+        return NextResponse.json({ 
+          error: 'New bank connection is not properly authorized', 
+          status: newRequisition.status,
+          details: `New requisition ${newRequisitionId} has status ${newRequisition.status}, expected 'GA'`
+        }, { status: 400 });
+      }
+      
+      // Check if we have account access in the new requisition
+      if (!newRequisition.accounts || newRequisition.accounts.length === 0) {
+        return NextResponse.json({ 
+          error: 'New bank connection has no accounts associated with it'
+        }, { status: 400 });
+      }
+      
+      console.log(`New requisition ${newRequisitionId} is valid with status: ${newRequisition.status} and ${newRequisition.accounts.length} accounts`);
+      
+      // Continue with the process once validation is successful
+    } catch (gcError) {
+      console.error('Error verifying new requisition with GoCardless:', gcError);
+      return NextResponse.json({ 
+        error: 'Failed to verify new requisition status with GoCardless',
+        details: gcError instanceof Error ? gcError.message : String(gcError)  
+      }, { status: 500 });
+    }
 
-    // Get the old requisition
+    // Get the old requisition from Appwrite
     const oldRequisitionRequest = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_REQ_COLLECTION_ID!,
@@ -26,17 +61,22 @@ export async function POST(request: NextRequest) {
     );
 
     if (!oldRequisitionRequest.documents.length) {
-      return NextResponse.json({ error: 'Old requisition not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Old requisition not found in database' }, { status: 404 });
     }
+    
+    // Store original document for reference
+    const originalDocument = oldRequisitionRequest.documents[0];
 
     // Update the old requisition with the new requisition ID
     const updatedOldRequisition = await database.updateDocument(
       APPWRITE_DATABASE_ID!,
       APPWRITE_REQ_COLLECTION_ID!,
-      oldRequisitionRequest.documents[0].$id,
+      originalDocument.$id,
       {
         requisitionId: newRequisitionId,
-        $createdAt: new Date().toISOString() // Format correctly for database
+        $createdAt: new Date().toISOString(), // Format correctly for database
+        lastRenewed: new Date().toISOString(), // Add renewal timestamp
+        previousRequisitionId: oldRequisitionId // Keep track of the old ID
       }
     );
 
@@ -61,16 +101,25 @@ export async function POST(request: NextRequest) {
       
       if (!response.ok) {
         console.warn(`Failed to delete old requisition ${oldRequisitionId} from GoCardless API, but database was updated successfully. Status: ${response.status}`);
+      } else {
+        console.log(`Successfully deleted old requisition ${oldRequisitionId} from GoCardless`);
       }
     } catch (gcError) {
       // Log the error but don't fail the entire operation
       console.error('Error deleting old requisition from GoCardless:', gcError);
     }
 
-    return NextResponse.json({ message: 'Requisition updated and old requisition deletion attempted successfully' });
+    return NextResponse.json({ 
+      message: 'Requisition updated and old requisition deletion attempted successfully',
+      oldRequisitionId: oldRequisitionId,
+      newRequisitionId: newRequisitionId
+    });
 
   } catch (error) {
     console.error('Error in modifyRenewedBank POST:', error);
-    return NextResponse.json({ error: 'Failed to modify renewed bank', details: error }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to modify renewed bank', 
+      details: error instanceof Error ? error.message : String(error) 
+    }, { status: 500 });
   }
 }

@@ -1,104 +1,57 @@
+// FILE: app/api/getBalances/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getBankData, getSyncStatus, getCachedBalancesFromAppwrite } from '@/lib/bank.actions';
+import { getBankData, getCachedBalancesFromAppwrite } from '@/lib/bank.actions'; // Use getBankData which respects schedule
 import NodeCache from 'node-cache';
 
-// Increase memory cache duration to reduce load on both Appwrite and GoCardless
-const cache = new NodeCache({ stdTTL: 60 * 60 }); // Cache for 1 hour (3600 seconds)
-
-// Track sync attempts to prevent excessive API calls
-const syncAttemptTracker = {
-  lastSyncAttempt: 0,
-  minInterval: 60000 * 15, // 15 minutes minimum between sync attempts
-  isCurrentlySyncing: false
-};
+// Server-side memory cache: 5 minutes (shorter than store cache)
+const cache = new NodeCache({ stdTTL: 5 * 60 });
 
 export const GET = async (req: NextRequest) => {
-  try {
-    // Check memory cache first (fastest)
-    const cacheKey = 'bankData';
-    const cachedData = cache.get(cacheKey);
+    const url = new URL(req.url);
+    const refreshParam = url.searchParams.get('refresh') === 'true';
+    const cacheKey = 'bankDataBalances'; // Single key for all balances
 
-    if (cachedData) {
-      console.log('Returning cached bank data from NodeCache');
-      
-      // Maybe trigger a background refresh if it's been a while, but don't wait for results
-      triggerBackgroundSyncIfNeeded().catch(e => console.log('Background sync error:', e));
-      
-      return NextResponse.json(cachedData);
+    // Check memory cache first unless refreshing
+    if (!refreshParam) {
+        const cachedData = cache.get(cacheKey);
+        if (cachedData) {
+            console.log('API: Returning cached bank balances from NodeCache.');
+            return NextResponse.json(cachedData);
+        }
+    } else {
+        console.log('API: Force refresh requested for balances.');
     }
 
-    // If not in memory cache, try to load directly from Appwrite
-    // This avoids hitting GoCardless entirely if possible
-    const appwriteBankData = await getCachedBalancesFromAppwrite();
-    
-    if (appwriteBankData && appwriteBankData.length > 0) {
-      console.log('Found data in Appwrite cache, returning without GoCardless API call');
-      // Store in memory cache for next time
-      cache.set(cacheKey, appwriteBankData);
-      
-      // Maybe trigger a background refresh, but don't wait for results
-      triggerBackgroundSyncIfNeeded().catch(e => console.log('Background sync error:', e));
-      
-      return NextResponse.json(appwriteBankData);
+    try {
+        // Call getBankData - it handles caching, scheduling, and rate limits internally
+        // Pass forceRefresh if needed (getBankData needs to be updated to accept this)
+        // For now, rely on getBankData's internal logic which calls getBalances(respecting schedule)
+        const bankData = await getBankData(); // This fetches balances for *all* requisitions
+
+        // Store the combined bank data in server cache
+        cache.set(cacheKey, bankData);
+
+        // Set browser cache header
+        const headers = new Headers();
+        // Cache balances less aggressively in browser than transactions
+        headers.set('Cache-Control', 'public, max-age=60'); // 1 minute
+
+        return NextResponse.json(bankData, { headers });
+
+    } catch (error) {
+        console.error('API Error fetching balances:', error);
+        // Fallback to Appwrite cache if direct fetch fails
+        try {
+           console.warn("API Error: Falling back to Appwrite cached balances.");
+           const appwriteCachedData = await getCachedBalancesFromAppwrite();
+           if (appwriteCachedData && appwriteCachedData.length > 0) {
+               cache.set(cacheKey, appwriteCachedData); // Update server cache with fallback data
+               return NextResponse.json(appwriteCachedData);
+           }
+        } catch (cacheError) {
+             console.error("API Error: Failed to retrieve Appwrite cache as fallback:", cacheError)
+        }
+        // Final fallback if everything fails
+        return NextResponse.json({ error: 'Failed to fetch balances' }, { status: 500 });
     }
-
-    // As a last resort, if we have no data at all, fetch from GoCardless
-    // This should only happen on first run or if cache was cleared
-    console.log('No cached data available, fetching from GoCardless (this should be rare)');
-    const bankData = await getBankData();
-
-    // Store the bank data in cache
-    cache.set(cacheKey, bankData);
-
-    // Return the bank data as the response body
-    return NextResponse.json(bankData);
-  } catch (error) {
-    console.error('Error fetching balances:', error);
-    
-    // If there's an error but we have cached data, return that instead
-    const cachedFallback = cache.get('bankData');
-    if (cachedFallback) {
-      console.log('Error occurred but returning cached data as fallback');
-      return NextResponse.json(cachedFallback);
-    }
-    
-    return NextResponse.json({ error: 'Error fetching balances' }, { status: 500 });
-  }
 };
-
-// Function to potentially trigger a background sync without blocking
-async function triggerBackgroundSyncIfNeeded() {
-  const now = Date.now();
-  
-  // Prevent multiple syncs running at once or too frequently
-  if (syncAttemptTracker.isCurrentlySyncing || 
-      now - syncAttemptTracker.lastSyncAttempt < syncAttemptTracker.minInterval) {
-    return;
-  }
-  
-  const syncStatus = await getSyncStatus();
-  
-  if (syncStatus.balances.canSyncNow) {
-    syncAttemptTracker.isCurrentlySyncing = true;
-    syncAttemptTracker.lastSyncAttempt = now;
-    
-    setTimeout(async () => {
-      try {
-        console.log('Starting background balance sync');
-        const freshBankData = await getBankData();
-        
-        // Update cache with new data
-        cache.set('bankData', freshBankData);
-        console.log('Background balance sync completed and cache updated');
-      } catch (error) {
-        console.error('Background balance sync failed:', error);
-      } finally {
-        syncAttemptTracker.isCurrentlySyncing = false;
-      }
-    }, 100); // Small delay to ensure response is sent first
-  } else {
-    console.log(
-      `Skipping background GoCardless sync - next sync available in ${Math.round(syncStatus.balances.timeUntilNextSync / 60000)} minutes`
-    );
-  }
-}

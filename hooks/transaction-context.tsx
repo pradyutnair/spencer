@@ -5,6 +5,7 @@ import { Transaction } from '@/types/index';
 interface TransactionContextType {
   transactions: Transaction[];
   loading: boolean;
+  error?: string | null;
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);

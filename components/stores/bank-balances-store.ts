@@ -1,144 +1,134 @@
-// stores/bank-balances-store.ts
+// FILE: components/stores/bank-balances-store.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { BankData } from '@/types/index';
+
+// Cache duration: 1 hour
+const CACHE_DURATION = 60 * 60 * 1000;
 
 interface BankState {
   bankData: BankData[];
   bankDataLoading: boolean;
   lastFetched: number;
+  error: string | null;
   setBankData: (bankData: BankData[]) => void;
   setBankDataLoading: (loading: boolean) => void;
-  fetchBankData: () => Promise<void>;
+  setError: (error: string | null) => void;
+  fetchBankData: (forceRefresh?: boolean) => Promise<void>;
 }
 
-// Increased cache duration to 1 hour
-const CACHE_DURATION = 60 * 60 * 1000;
-
-// Function to load initial data from localStorage
-const loadInitialData = () => {
+// Function to load initial state safely
+const loadInitialState = (): Omit<BankState, 'setBankData' | 'setBankDataLoading' | 'setError' | 'fetchBankData'> => {
   try {
+    if (typeof window === 'undefined') {
+      return { bankData: [], bankDataLoading: true, lastFetched: 0, error: null };
+    }
     const storedData = localStorage.getItem('bank-balances-storage');
-    if (!storedData) return { bankData: [], lastFetched: 0 };
-    
+    if (!storedData) return { bankData: [], bankDataLoading: true, lastFetched: 0, error: null };
+
     const parsedData = JSON.parse(storedData);
-    if (!parsedData.state) return { bankData: [], lastFetched: 0 };
-    
+    const state = parsedData?.state;
+    const bankData = state?.bankData || [];
+    const lastFetched = state?.lastFetched || 0;
+    const isCacheExpired = Date.now() - lastFetched > CACHE_DURATION;
+
     return {
-      bankData: parsedData.state.bankData || [],
-      lastFetched: parsedData.state.lastFetched || 0
+      bankData: bankData,
+      // Start loading if cache is expired or no data exists
+      bankDataLoading: bankData.length === 0 || isCacheExpired,
+      lastFetched: lastFetched,
+      error: null,
     };
   } catch (error) {
-    console.error('Error loading initial bank data:', error);
-    return { bankData: [], lastFetched: 0 };
+    console.error('Error loading initial bank data from storage:', error);
+    return { bankData: [], bankDataLoading: true, lastFetched: 0, error: null };
   }
 };
 
-// Get initial data before creating store
-const initialData = typeof window !== 'undefined' ? loadInitialData() : { bankData: [], lastFetched: 0 };
+const initialState = loadInitialState();
 
 export const useBankStore = create<BankState>()(
   persist(
     (set, get) => ({
-      bankData: initialData.bankData,
-      bankDataLoading: initialData.bankData.length === 0,
-      lastFetched: initialData.lastFetched,
-      setBankData: (bankData) => set({ bankData, bankDataLoading: false, lastFetched: Date.now() }),
+      bankData: initialState.bankData,
+      bankDataLoading: initialState.bankDataLoading,
+      lastFetched: initialState.lastFetched,
+      error: initialState.error,
+
+      setBankData: (bankData) => set({ bankData, bankDataLoading: false, error: null, lastFetched: Date.now() }),
       setBankDataLoading: (loading) => set({ bankDataLoading: loading }),
-      fetchBankData: async () => {
+      setError: (error) => set({ error, bankDataLoading: false }),
+
+      fetchBankData: async (forceRefresh = false) => {
         const { lastFetched, bankData } = get();
-        
-        // Return immediately if cache is fresh
-        if (Date.now() - lastFetched < CACHE_DURATION && bankData.length > 0) {
-          console.log('Using cached bank data', bankData.length);
-          set({ bankDataLoading: false });
+        const now = Date.now();
+        const isCacheValid = now - lastFetched < CACHE_DURATION && bankData.length > 0;
+
+        if (isCacheValid && !forceRefresh) {
+          console.log('Using valid cached bank data.');
+          set({ bankDataLoading: false, error: null }); // Ensure loading is false
           return;
         }
 
-        set({ bankDataLoading: true });
+        console.log(forceRefresh ? 'Forcing refresh of bank data.' : 'Fetching fresh bank data (cache expired or empty).');
+        set({ bankDataLoading: true, error: null });
+
         try {
-          const response = await fetch('/api/getBalances', {
-            cache: 'no-store' // Prevent browser caching - we'll handle that ourselves
-          });
-          
+          // Pass forceRefresh to the API if needed, or handle logic here
+          const apiUrl = forceRefresh ? '/api/getBalances?refresh=true' : '/api/getBalances';
+          const response = await fetch(apiUrl, { cache: 'no-store' });
+
           if (!response.ok) {
-            throw new Error(`API responded with status: ${response.status}`);
+            const errorData = await response.json().catch(() => ({ error: 'Failed to fetch balances' }));
+            throw new Error(errorData.error || `API Error: ${response.status}`);
           }
-          
+
           const data: BankData[] = await response.json();
-          set({ bankData: data, lastFetched: Date.now(), bankDataLoading: false });
-          
-          // Cache in localStorage directly as well for redundancy
+
+          // Update local storage cache manually as a fallback
           try {
-            localStorage.setItem('bankData', JSON.stringify(data));
-            localStorage.setItem('bankData_timestamp', Date.now().toString());
+             localStorage.setItem('bankData', JSON.stringify(data));
+             localStorage.setItem('bankData_timestamp', now.toString());
           } catch (storageError) {
-            console.error('Failed to save bank data to localStorage:', storageError);
+             console.warn('Could not update localStorage cache for bank data:', storageError);
           }
-          
-          console.log('Fetched fresh bank data', data.length);
+
+          set({ bankData: data, lastFetched: now, bankDataLoading: false, error: null });
+          console.log('Successfully fetched/updated bank data.');
+
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching balances';
           console.error('Error fetching balances:', error);
-          // If we have stale data, use it as fallback
-          if (bankData.length > 0) {
-            set({ bankDataLoading: false });
-          } else {
-            // Try to load from localStorage as emergency backup
+          // Keep existing data if fetch fails but don't update lastFetched time
+          set({ error: errorMessage, bankDataLoading: false });
+
+          // Attempt to load emergency backup from direct localStorage if store is empty
+          if (get().bankData.length === 0) {
             try {
-              const cachedData = localStorage.getItem('bankData');
-              if (cachedData) {
-                const parsedData = JSON.parse(cachedData);
-                set({ bankData: parsedData, bankDataLoading: false });
-                console.log('Used emergency localStorage fallback for bank data');
+              const lsData = localStorage.getItem('bankData');
+              const lsTimestamp = localStorage.getItem('bankData_timestamp');
+              if (lsData && lsTimestamp) {
+                 const parsedLsData = JSON.parse(lsData);
+                 set({ bankData: parsedLsData, lastFetched: parseInt(lsTimestamp, 10), bankDataLoading: false, error: `Error fetching fresh data. Displaying cached data from ${new Date(parseInt(lsTimestamp, 10)).toLocaleString()}.` });
+                 console.log('Used emergency localStorage fallback for bank data.');
               }
             } catch (fallbackError) {
-              console.error('Failed to load fallback bank data:', fallbackError);
+              console.error('Failed to load localStorage fallback:', fallbackError);
             }
           }
         }
       },
     }),
     {
-      name: 'bank-balances-storage',
-      storage: createJSONStorage(() => {
-        if (typeof window !== 'undefined') {
-          return {
-            getItem: async (name) => {
-              try {
-                const storedItem = localStorage.getItem(name);
-                return storedItem ? JSON.parse(storedItem) : null;
-              } catch (error) {
-                console.error('Error retrieving bank data from storage:', error);
-                return null;
-              }
-            },
-            setItem: async (name, value) => {
-              try {
-                localStorage.setItem(name, JSON.stringify(value));
-              } catch (error) {
-                console.error('Error storing bank data:', error);
-              }
-            },
-            removeItem: async (name) => {
-              try {
-                localStorage.removeItem(name);
-              } catch (error) {
-                console.error('Error removing bank data from storage:', error);
-              }
-            },
-          };
-        } else {
-          return {
-            getItem: async () => null,
-            setItem: async () => {},
-            removeItem: async () => {},
-          };
-        }
-      }),
-      partialize: (state) => ({ 
+      name: 'bank-balances-storage', // unique name
+      storage: createJSONStorage(() => localStorage), // use localStorage
+      partialize: (state) => ({
         bankData: state.bankData,
-        lastFetched: state.lastFetched 
+        lastFetched: state.lastFetched,
+        // Don't persist loading or error states
       }),
+      // Optional: Migrate state structure if it changes
+      // migrate: (persistedState, version) => { ... }
     }
   )
 );

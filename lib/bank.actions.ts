@@ -12,6 +12,64 @@ import { shouldSyncNow, recordSync, getTimeUntilNextSync } from './sync-schedule
 
 dayjs.extend(weekOfYear);
 
+// New function to get cached balances directly from Appwrite without touching GoCardless
+export const getCachedBalancesFromAppwrite = async (): Promise<BankData[]> => {
+    try {
+        const { database } = await createAdminClient();
+        const requisitionData = await getRequisitions();
+        
+        if (!requisitionData.length) {
+            return [];
+        }
+        
+        const BALANCE_CACHE_COLLECTION_ID = process.env.APPWRITE_BALANCE_CACHE_COLLECTION_ID || 'balance_cache';
+        
+        // Get the latest cached balance for each requisition
+        const bankDataPromises = requisitionData.map(async ({ requisitionId, bankName, bankLogo, reqCreated }) => {
+            try {
+                const cachedData = await database.listDocuments(
+                    process.env.APPWRITE_DATABASE_ID!,
+                    BALANCE_CACHE_COLLECTION_ID,
+                    [
+                        Query.equal('requisitionId', requisitionId),
+                        Query.orderDesc('$createdAt'),
+                        Query.limit(1)
+                    ]
+                );
+                
+                if (cachedData.documents.length === 0) {
+                    return null;
+                }
+                
+                // Handle both string and object formats
+                let balances;
+                if (typeof cachedData.documents[0].balances === 'string') {
+                    balances = JSON.parse(cachedData.documents[0].balances);
+                } else {
+                    balances = cachedData.documents[0].balances;
+                }
+                
+                return { 
+                    requisitionId, 
+                    bankName, 
+                    bankLogo, 
+                    balances, 
+                    reqCreated 
+                };
+            } catch (error) {
+                console.error(`Error getting cached balances for requisition ${requisitionId}:`, error);
+                return null;
+            }
+        });
+        
+        const results = await Promise.all(bankDataPromises);
+        return results.filter(result => result !== null) as BankData[];
+    } catch (error) {
+        console.error('Error in getCachedBalancesFromAppwrite:', error);
+        return [];
+    }
+};
+
 // Retrieve requisitionIds for a given user from Appwrite
 export const getRequisitions = async () => {
     const { database } = await createAdminClient();
@@ -307,21 +365,53 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
         }
     }
     
+    // Check if we have a rate limit marker for today (persisted in Appwrite)
+    const isRateLimited = await checkRateLimitState();
+    if (isRateLimited) {
+        console.log('GoCardless API is currently rate limited. Using cached data only.');
+        // Return transactions from Appwrite instead
+        const allTransactions: Transaction[] = [];
+        for (const requisitionId of requisitionIds) {
+            try {
+                const transactions = await pullCachedTransactions(requisitionId);
+                allTransactions.push(...transactions);
+            } catch (error) {
+                console.error(`Error fetching cached transactions during rate limit for requisition ID ${requisitionId}:`, error);
+            }
+        }
+        return allTransactions;
+    }
+    
     console.log(`getGCTransactions LOG: Fetching transactions from GoCardless for ${requisitionIds} requisition IDs`);
     const client = await createGoCardlessClient();
     let allTransactions: Transaction[] = [];
 
     dateTo = dateTo || dayjs().format("YYYY-MM-DD");
-    await client.generateToken();
+    
+    try {
+        await client.generateToken();
+    } catch (error) {
+        console.error('Error generating GoCardless token:', error);
+        // Return cached data if we can't even generate a token
+        return await fallbackToCachedTransactions(requisitionIds);
+    }
 
     for (let i = 0; i < requisitionIds.length; i++) {
         const requisitionId = requisitionIds[i];
         const bankName = bankNames ? bankNames[i] : undefined;
         try {
             console.log(`Fetching transactions for requisition ID ${requisitionId} and bank ${bankName}`);
-            const accounts = await getAccounts({ requisitionIds: [requisitionId] });
+            let accounts;
+            
+            try {
+                accounts = await getAccounts({ requisitionIds: [requisitionId] });
+            } catch (error) {
+                console.error(`Error fetching accounts for requisition ID ${requisitionId}:`, error);
+                // If we can't get accounts, try the next requisition
+                continue;
+            }
 
-            if (!accounts) {
+            if (!accounts || accounts.length === 0) {
                 console.error(`No accounts found for requisition ID ${requisitionId}`);
                 continue; // Continue with the next requisitionId
             }
@@ -331,27 +421,77 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
             }
 
             const accountTransactionsPromises = accounts.map(async (accountId) => {
-                const account = client.account(accountId);
-                const transactionResponse = await account.getTransactions({ dateFrom, dateTo });
-                return transactionResponse.transactions.booked.concat(transactionResponse.transactions.pending);
+                try {
+                    const account = client.account(accountId);
+                    const transactionResponse = await account.getTransactions({ dateFrom, dateTo });
+                    return transactionResponse.transactions.booked.concat(transactionResponse.transactions.pending || []);
+                } catch (error: any) {
+                    // Check if this is a rate limit error
+                    if (error?.response?.status === 429) {
+                        const resetTime = error?.response?.headers?.['http_x_ratelimit_account_success_reset'];
+                        const resetSeconds = parseInt(resetTime, 10) || 86400; // Default to 24h if no header
+                        
+                        // Record the rate limit with the exact reset time
+                        await recordRateLimit(resetSeconds);
+                        
+                        console.warn(`Rate limit hit for requisition ${requisitionId}. Will retry after ${new Date(Date.now() + resetSeconds * 1000).toLocaleString()}`);
+                        
+                        // Get cached transactions from DB for this requisition as fallback
+                        const cachedTransactions = await pullCachedTransactions(requisitionId);
+                        allTransactions.push(...cachedTransactions);
+                        console.log(`Using ${cachedTransactions.length} cached transactions as fallback for ${requisitionId}`);
+                        
+                        // Skip remaining requisitions to avoid more rate limit hits
+                        return allTransactions;
+                    } else {
+                        console.error(`Error fetching transactions for account ${accountId}:`, error);
+                        return [];
+                    }
+                }
             });
 
-            const accountTransactions = await Promise.all(accountTransactionsPromises);
-            const flattenedTransactions = accountTransactions.flat();
-            const correctedTransactions = await applyDataCorrections(flattenedTransactions, bankName);
-
-            allTransactions.push(...correctedTransactions);
-
-            console.log(`Pushing transactions for ${requisitionId} for ${bankName} to the database`);
-            // Push each transaction to the database
-            for (let transaction of correctedTransactions) {
-                await pushTransactionsDB(transaction, requisitionId);
+            try {
+                const accountTransactions = await Promise.all(accountTransactionsPromises);
+                const flattenedTransactions = accountTransactions.flat();
+                
+                // Only process if we got any transactions
+                if (flattenedTransactions.length > 0) {
+                    const correctedTransactions = await applyDataCorrections(flattenedTransactions, bankName);
+                    allTransactions.push(...correctedTransactions);
+    
+                    console.log(`Pushing ${correctedTransactions.length} transactions for ${requisitionId} for ${bankName} to the database`);
+                    // Push each transaction to the database
+                    for (let transaction of correctedTransactions) {
+                        await pushTransactionsDB(transaction, requisitionId);
+                    }
+    
+                    console.log(`Transactions for ${requisitionId} written to the database`);
+                } else {
+                    console.log(`No new transactions found for ${requisitionId}`);
+                }
+            } catch (error) {
+                console.error(`Error processing transactions for requisition ID ${requisitionId}:`, error);
             }
-
-            console.log(`Transactions for ${requisitionId} written to the database`);
-
-        } catch (error) {
-            console.error(`Error fetching transactions for requisition ID ${requisitionId}:`, error);
+        } catch (error: any) {
+            // Check if this entire requisition hit a rate limit
+            if (error?.response?.status === 429) {
+                const resetTime = error?.response?.headers?.['http_x_ratelimit_account_success_reset'];
+                const resetSeconds = parseInt(resetTime, 10) || 86400; // Default to 24h if no header
+                
+                // Record the rate limit
+                await recordRateLimit(resetSeconds);
+                
+                console.error(`Rate limit hit for requisition ${requisitionId}. Reset in ${resetSeconds} seconds.`);
+                
+                // Get cached transactions for this requisition
+                const cachedTransactions = await pullCachedTransactions(requisitionId);
+                allTransactions.push(...cachedTransactions);
+                
+                // Skip remaining requisitions to avoid more rate limit hits
+                break;
+            } else {
+                console.error(`Error fetching transactions for requisition ID ${requisitionId}:`, error);
+            }
         }
     }
 
@@ -581,3 +721,98 @@ export const getSyncStatus = async (): Promise<{
         }
     };
 };
+
+// Helper function to check if we're currently rate limited
+async function checkRateLimitState(): Promise<boolean> {
+    try {
+        const { database } = await createAdminClient();
+        const rateLimitCollection = process.env.APPWRITE_RATE_LIMIT_COLLECTION_ID || 'rate_limits';
+        
+        const query = await database.listDocuments(
+            process.env.APPWRITE_DATABASE_ID!,
+            rateLimitCollection,
+            [
+                Query.equal('service', 'gocardless'),
+                Query.greaterThan('expiresAt', new Date().toISOString())
+            ]
+        );
+        
+        if (query.documents.length > 0) {
+            const expiryTime = new Date(query.documents[0].expiresAt).getTime();
+            const now = new Date().getTime();
+            const remainingSeconds = Math.round((expiryTime - now) / 1000);
+            
+            console.log(`GoCardless is rate limited for another ${remainingSeconds} seconds`);
+            return true;
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('Error checking rate limit state:', error);
+        // If we can't check, assume we're not rate limited
+        return false;
+    }
+}
+
+// Helper function to record a rate limit hit
+async function recordRateLimit(resetSeconds: number): Promise<void> {
+    try {
+        const { database } = await createAdminClient();
+        const rateLimitCollection = process.env.APPWRITE_RATE_LIMIT_COLLECTION_ID || 'rate_limits';
+        
+        // Calculate when the rate limit expires
+        const expiryDate = new Date();
+        expiryDate.setSeconds(expiryDate.getSeconds() + resetSeconds);
+        
+        await database.createDocument(
+            process.env.APPWRITE_DATABASE_ID!,
+            rateLimitCollection,
+            ID.unique(),
+            {
+                service: 'gocardless',
+                hitAt: new Date().toISOString(),
+                expiresAt: expiryDate.toISOString(),
+                resetSeconds: resetSeconds
+            }
+        );
+        
+        console.log(`Recorded rate limit for GoCardless. Expires in ${resetSeconds} seconds.`);
+    } catch (error) {
+        console.error('Error recording rate limit:', error);
+    }
+}
+
+// Helper function to get cached transactions when rate limited
+async function pullCachedTransactions(requisitionId: string): Promise<Transaction[]> {
+    try {
+        const { database } = await createAdminClient();
+        const transactions = await database.listDocuments(
+            process.env.APPWRITE_DATABASE_ID!,
+            process.env.APPWRITE_TRANSACTION_COLLECTION_ID!,
+            [
+                Query.equal('requisitionId', requisitionId),
+                Query.orderDesc('bookingDate'),
+                Query.limit(5000)
+            ]
+        );
+        
+        console.log(`Retrieved ${transactions.documents.length} cached transactions for requisition ${requisitionId}`);
+        return transactions.documents as unknown as Transaction[];
+    } catch (error) {
+        console.error(`Error fetching cached transactions for requisition ${requisitionId}:`, error);
+        return [];
+    }
+}
+
+// Helper function to fall back to cached transactions when API calls fail
+async function fallbackToCachedTransactions(requisitionIds: string[]): Promise<Transaction[]> {
+    console.log('Falling back to cached transactions due to API error');
+    const allTransactions: Transaction[] = [];
+    
+    for (const requisitionId of requisitionIds) {
+        const transactions = await pullCachedTransactions(requisitionId);
+        allTransactions.push(...transactions);
+    }
+    
+    return allTransactions;
+}

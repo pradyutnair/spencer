@@ -6,52 +6,90 @@ import { createGoCardlessClient } from '@/lib/gocardless';
 export async function POST(request: NextRequest) {
     try {
         let { institutionId, redirectUrl } = await request.json();
-        //console.log('Institution ID from EUA:', institutionId);
 
+        // Validate required parameters
         if (!institutionId) {
-            return NextResponse.redirect('/sign-up');
+            return NextResponse.json({ error: 'Institution ID is required' }, { status: 400 });
         }
 
         const client = await createGoCardlessClient();
         await client.generateToken();
 
-        let accessValidForDays = 120;
-        let maxHistoricalDays = 730;
+        // GoCardless parameters with appropriate defaults
+        const accessValidForDays = 120;
+        const maxHistoricalDays = 730;
 
-        // Use a default value for origin if it is not present in the request headers
-        const origin = request.headers.get('origin') || 'http://localhost:3000';
+        // Get origin from headers, fallback to environment variable or secure default
+        const origin = request.headers.get('origin') || 
+                      process.env.APP_URL || 
+                      process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`;
 
-        // The redirect url is either provided in the request or a default value is used
-        if (!redirectUrl) {
-            redirectUrl = `${origin}/gocardless-redirect`;
-        } else {
-            redirectUrl = `${origin}${redirectUrl}`
+        if (!origin) {
+            return NextResponse.json(
+                { error: 'Origin could not be determined. Please set APP_URL in environment variables.' }, 
+                { status: 500 }
+            );
         }
-        //console.log('Redirect URL:', redirectUrl);
 
-        let init;
+        // Construct redirect URL with proper validation
+        let finalRedirectUrl;
+        if (!redirectUrl) {
+            finalRedirectUrl = `${origin}/gocardless-redirect`;
+        } else {
+            // Ensure redirectUrl starts with a slash if it's a relative path
+            redirectUrl = redirectUrl.startsWith('/') ? redirectUrl : `/${redirectUrl}`;
+            finalRedirectUrl = `${origin}${redirectUrl}`;
+        }
+
+        // Generate a reference ID for tracking
+        const referenceId = randomUUID();
+
         try {
-            init = await client.initSession({
-                redirectUrl: redirectUrl,
+            // Try with full parameters first
+            const init = await client.initSession({
+                redirectUrl: finalRedirectUrl,
                 institutionId: institutionId,
-                referenceId: randomUUID(),
+                referenceId: referenceId,
                 accessValidForDays: accessValidForDays,
                 maxHistoricalDays: maxHistoricalDays,
             });
-        } catch (error) {
-            console.error(`Unable to initialize session with accessValidForDays and maxHistoricalDays: ${accessValidForDays} and ${maxHistoricalDays}`);
-            init = await client.initSession({
-                redirectUrl: redirectUrl,
-                institutionId: institutionId,
-                referenceId: randomUUID()
+
+            // Return requisitionId along with the link
+            return NextResponse.json({ 
+                link: init.link, 
+                requisitionId: init.id,
+                referenceId: referenceId
             });
+        } catch (initError) {
+            console.error(`Error initializing session with full parameters: ${initError}`);
+            
+            // Fall back to minimal parameters
+            try {
+                const init = await client.initSession({
+                    redirectUrl: finalRedirectUrl,
+                    institutionId: institutionId,
+                    referenceId: referenceId
+                });
+    
+                return NextResponse.json({ 
+                    link: init.link, 
+                    requisitionId: init.id,
+                    referenceId: referenceId,
+                    fallback: true
+                });
+            } catch (fallbackError) {
+                console.error('Fallback initialization also failed:', fallbackError);
+                throw fallbackError;
+            }
         }
-
-        // Return requisitionId along with the link
-        return NextResponse.json({ link: init.link, requisitionId: init.id });
-
     } catch (error) {
         console.error('CREATE SESSION POST Error:', error);
-        return NextResponse.json({ error: 'Failed to create session', details: error });
+        return NextResponse.json(
+            { 
+                error: 'Failed to create session', 
+                details: error instanceof Error ? error.message : String(error)
+            }, 
+            { status: 500 }
+        );
     }
 }

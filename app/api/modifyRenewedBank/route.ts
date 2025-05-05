@@ -4,6 +4,7 @@ import { Query } from 'appwrite';
 import { createGoCardlessClient } from '@/lib/gocardless';
 
 const { APPWRITE_DATABASE_ID, APPWRITE_REQ_COLLECTION_ID } = process.env;
+const GOCARDLESS_API_URL = process.env.GOCARDLESS_API_URL || 'https://bankaccountdata.gocardless.com/api/v2';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,32 +36,38 @@ export async function POST(request: NextRequest) {
       oldRequisitionRequest.documents[0].$id,
       {
         requisitionId: newRequisitionId,
-        $createdAt: Date.now() // Update the created time to the current time so it is new
+        $createdAt: new Date().toISOString() // Format correctly for database
       }
     );
 
     if (!updatedOldRequisition) {
       return NextResponse.json({ error: 'Failed to modify renewed bank' }, { status: 500 });
-    } else {
+    }
+
+    // Try to delete the old requisition from GoCardless but don't fail if this step fails
+    try {
       const client = await createGoCardlessClient();
       const tokenData = await client.generateToken();
       const accessToken = tokenData.access;
 
-    // Delete the old requisition using GoCardless API
-    const response = await fetch(`https://bankaccountdata.gocardless.com/api/v2/requisitions/${oldRequisitionId}/`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+      // Delete the old requisition using GoCardless API
+      const response = await fetch(`${GOCARDLESS_API_URL}/requisitions/${oldRequisitionId}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn(`Failed to delete old requisition ${oldRequisitionId} from GoCardless API, but database was updated successfully. Status: ${response.status}`);
       }
-    });
-    if (!response.ok) {
-      throw new Error('Failed to delete old requisition');
+    } catch (gcError) {
+      // Log the error but don't fail the entire operation
+      console.error('Error deleting old requisition from GoCardless:', gcError);
     }
 
-    }
-
-    return NextResponse.json({ message: 'Requisition updated and old requisition deleted successfully' });
+    return NextResponse.json({ message: 'Requisition updated and old requisition deletion attempted successfully' });
 
   } catch (error) {
     console.error('Error in modifyRenewedBank POST:', error);

@@ -41,6 +41,11 @@ const BankCard = ({
   const displayBankName = bankName.split(/[^a-zA-Z0-9 ]/g)[0].toLowerCase().replace(/^\w/, c => c.toUpperCase());
   let daysToExpire = Math.ceil((new Date(reqCreated).getTime() + 120 * 24 * 60 * 60 * 1000 - Date.now()) / (24 * 60 * 60 * 1000));
   //daysToExpire = 0
+  console.log('Requisition ID:', requisitionId);
+  console.log('Requisition created date:', reqCreated);
+  console.log('Current date:', new Date().toISOString());
+  console.log('Expiry date:', new Date(new Date(reqCreated).getTime() + 120 * 24 * 60 * 60 * 1000).toISOString());
+  console.log('Days to expire:', daysToExpire);
   let expiryDays = daysToExpire > 0 ? `${daysToExpire} days` : 'Expired';
 
   let formattedDaysToExpire: string | number | boolean | JSX.Element | Iterable<ReactNode> | PromiseLikeOfReactNode | null | undefined;

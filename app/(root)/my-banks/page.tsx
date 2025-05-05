@@ -9,53 +9,39 @@ import DoughnutChart from '@/components/balance-pie-chart';
 import { TransactionProvider } from '@/hooks/transaction-context';
 import BudgetComponent from '@/components/budget-progress';
 import { useTransactionStore } from '@/components/stores/transaction-store';
-
-const CACHE_KEY = 'bankData';
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes in milliseconds
+import { Skeleton } from '@/components/ui/skeleton';
 
 const MyBanks = () => {
   const { currency } = useCurrencyStore();
-  const { bankData, setBankData, setBankDataLoading, bankDataLoading } = useBankStore();
-  const { transactions } = useTransactionStore();
+  const { bankData, setBankData, setBankDataLoading, bankDataLoading, fetchBankData } = useBankStore();
+  const { transactions, loading: transactionsLoading, fetchTransactions } = useTransactionStore();
 
+  // Initialize both data sources in parallel on first load
   useEffect(() => {
-    const fetchBalances = async () => {
-      setBankDataLoading(true);
+    const initializeData = async () => {
       try {
-        const cachedData = localStorage.getItem(CACHE_KEY);
-        const cachedTimestamp = localStorage.getItem(`${CACHE_KEY}_timestamp`);
-
-        if (cachedData && cachedTimestamp) {
-          const parsedData = JSON.parse(cachedData);
-          const timestamp = parseInt(cachedTimestamp, 10);
-
-          if (Date.now() - timestamp < CACHE_EXPIRY) {
-            setBankData(parsedData);
-            setBankDataLoading(false);
-            return;
-          }
-        }
-
-        const response = await fetch("/api/getBalances");
-        const data = await response.json();
-        setBankData(data);
-
-        // Cache the new data
+        // Start loading both data sources in parallel
+        const bankPromise = fetchBankData();
+        const transactionPromise = fetchTransactions();
+        
+        // Wait for both to complete
+        await Promise.allSettled([bankPromise, transactionPromise]);
+        
+        console.log('Initial data loading complete');
       } catch (error) {
-        console.error('Error fetching balances:', error);
-      } finally {
-        setBankDataLoading(false);
+        console.error('Error initializing dashboard data:', error);
       }
     };
 
-    fetchBalances();
-  }, [setBankData, setBankDataLoading]);
+    initializeData();
+  }, [fetchBankData, fetchTransactions]);
 
-  const accountBalances = createAccountBalanceBreakdown(bankData, currency);
+  // Create account balances breakdown once bank data is loaded
+  const accountBalances = React.useMemo(() => 
+    createAccountBalanceBreakdown(bankData, currency),
+  [bankData, currency]);
 
-  if (bankDataLoading) {
-    return <div>Loading...</div>; // Replace with a suitable loading component
-  }
+  const isLoading = bankDataLoading || transactionsLoading;
 
   return (
     <TransactionProvider>
@@ -67,17 +53,33 @@ const MyBanks = () => {
             </h1>
             <LinkBankAccountButton />
           </div>
+          
           <div className="flex flex-col md:flex-row items-start mt-14 space-x-0 md:space-x-8">
             <div className="w-full md:w-1/2 mt-24 flex flex-col items-center">
                 <div className="flex justify-center h-full">
-                  <DoughnutChart accountBalances={accountBalances} currency={currency} />
+                  {isLoading ? (
+                    <div className="w-[300px] h-[300px] flex items-center justify-center">
+                      <Skeleton className="w-full h-full rounded-full" />
+                    </div>
+                  ) : (
+                    <DoughnutChart accountBalances={accountBalances} currency={currency} />
+                  )}
                 </div>
                 <div className="mt-4 flex justify-center h-full">
                   <SelectCurrency />
                 </div>
             </div>
             <div className="w-full md:w-1/2 flex justify-center mt-8 md:mt-0 h-full max-h-[70vh] overflow-y-auto scrollbar-thin">
-              <BudgetComponent transactions={transactions} useColorScheme={true} />
+              {isLoading ? (
+                <div className="w-full max-w-md">
+                  <Skeleton className="w-full h-12 mb-4" />
+                  <Skeleton className="w-full h-40 mb-4" />
+                  <Skeleton className="w-full h-40 mb-4" />
+                  <Skeleton className="w-full h-40" />
+                </div>
+              ) : (
+                <BudgetComponent transactions={transactions} useColorScheme={true} />
+              )}
             </div>
           </div>
         </div>

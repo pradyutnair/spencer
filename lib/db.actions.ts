@@ -65,35 +65,55 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
 }
 
 // This function will pull only non-excluded transactions from the database
-export async function pullTransactionsDB(requisitionId: string) {
+export async function pullTransactionsDB(requisitionId: string, bankName: string) {
   const { database } = await createAdminClient();
 
   try {
-    // Fetch all transactions with the provided requisition ID
-    let transactions = await database.listDocuments(
+    // Fetch transactions with a single query using OR filters
+    const transactions = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
-        Query.contains('requisitionId', requisitionId),
-        Query.orderDesc('bookingDateTime'),
+        Query.or([
+          Query.equal('requisitionId', requisitionId),
+          Query.equal('Bank', bankName)
+        ]),
         Query.or([
           Query.equal('exclude', false),
           Query.isNull('exclude')
         ]),
-        Query.limit(5000000000), // Adjust this number based on your needs
+        Query.orderDesc('bookingDateTime'),
+        Query.limit(5000),
       ]
     );
 
-    // Log
+    // Use a Map with transactionId as key to deduplicate transactions
+    const uniqueTransactions = new Map();
+    
+    for (const transaction of transactions.documents) {
+      // Use transactionId as the deduplication key
+      // If the document doesn't have an $id, use a combination of other identifying fields
+      const dedupeKey = transaction.$id || 
+                      `${transaction.Payee}_${transaction.amount}_${transaction.bookingDate}`;
+                      
+      // If this transaction hasn't been seen before, or if we're replacing 
+      // a bankName match with a more specific requisitionId match
+      if (!uniqueTransactions.has(dedupeKey) || 
+         (transaction.requisitionId === requisitionId && 
+          uniqueTransactions.get(dedupeKey).requisitionId !== requisitionId)) {
+        uniqueTransactions.set(dedupeKey, transaction);
+      }
+    }
 
-    // Filter out transactions containing any of the words in wordsToRemove
-    transactions.documents = transactions.documents.filter(transaction => {
-      return !wordsToRemove.some(word => transaction.Payee.includes(word));
-    });
-
-    return transactions.documents;
-
-
+    // Get the unique transactions as an array
+    const result = Array.from(uniqueTransactions.values());
+    
+    // Filter out transactions containing words to remove
+    return result.filter(transaction => 
+      !wordsToRemove.some(word => 
+        transaction.Payee && transaction.Payee.includes(word)
+      )
+    );
   } catch (error) {
     console.error('Error fetching transactions from Appwrite DB:', error);
     return [];
@@ -101,22 +121,34 @@ export async function pullTransactionsDB(requisitionId: string) {
 }
 
 // This function will pull all transactions from the database
-export async function pullAllTransactionsDB(requisitionId: string) {
+export async function pullAllTransactionsDB(requisitionId: string, bankName: string) {
   const { database } = await createAdminClient();
 
   try {
-    // Fetch all transactions with the provided requisition ID
-    let transactions = await database.listDocuments(
+    // Fetch transactions by requisitionId
+    const byReq = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_TRANSACTION_COLLECTION_ID!,
       [
         Query.equal('requisitionId', requisitionId),
         Query.orderDesc('bookingDateTime'),
-        Query.limit(5000000000), // Adjust this number based on your needs
+        Query.limit(5000),
       ]
     );
 
-    // Fetch all requisition details for the provided requisition ID
+    // Fetch by bankName
+    console.log('Fetching transactions by bank name:', bankName);
+    const byBank = await database.listDocuments(
+      APPWRITE_DATABASE_ID!,
+      APPWRITE_TRANSACTION_COLLECTION_ID!,
+      [
+        Query.equal('bankName', bankName),
+        Query.orderDesc('bookingDateTime'),
+        Query.limit(5000),
+      ]
+    );
+
+    // Fetch requisition details once (assume by requisitionId)
     const requisitionDetails = await database.listDocuments(
       APPWRITE_DATABASE_ID!,
       APPWRITE_REQ_COLLECTION_ID!,
@@ -125,34 +157,24 @@ export async function pullAllTransactionsDB(requisitionId: string) {
         Query.limit(1),
       ]
     );
+    const bankLogo = requisitionDetails.documents[0]?.bankLogo;
 
-    // Subset only the requisitionId and bankLogo from the requisition details
-    const requisitionDetailsSubset = requisitionDetails.documents.map((doc) => {
-      return {
-        requisitionId: doc.requisitionId,
-        bankLogo: doc.bankLogo,
-      };
-    });
+    // Combine and deduplicate
+    const all = [...byReq.documents, ...byBank.documents];
+    const uniqueMap = new Map();
+    for (const txn of all) {
+      uniqueMap.set(txn.$id, { ...txn, bankLogo });
+    }
 
-    // Add the bankLogo to each transaction
-    transactions.documents = transactions.documents.map((doc) => {
-      return {
-        ...doc,
-        bankLogo: requisitionDetailsSubset[0].bankLogo,
-      };
-    });
-
-    // Log
-    console.log(`Transactions successfully fetched from Appwrite DB for ${requisitionId}:`, transactions.documents.length);
-
-    return transactions.documents;
-
+    console.log(`Transactions fetched for ${requisitionId || bankName}: ${uniqueMap.size}`);
+    return Array.from(uniqueMap.values());
 
   } catch (error) {
-    console.error('Error fetching transactions from Appwrite DB:', error);
+    console.error('Error fetching all transactions:', error);
     return [];
   }
 }
+
 
 export async function updateTransactionExclusion(transactionId: string, exclude: boolean) {
   const { database } = await createAdminClient();

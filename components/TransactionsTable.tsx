@@ -408,11 +408,32 @@ const TableSkeleton = () => (
 // Main Table Component
 export function TransactionsTable() {
     // Use the consolidated transaction store
-    const { transactions, loading, error, fetchTransactions } = useTransactionStore();
-    const [sorting, setSorting] = useState<SortingState>([{ id: 'Payment Date', desc: true }]); // Default sort
+    const { transactions: rawTransactions, loading, error, fetchTransactions } = useTransactionStore();
+    const [sorting, setSorting] = useState<SortingState>([{ id: 'Payment Date', desc: false }]); // Default sort
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
     const [rowSelection, setRowSelection] = useState({});
+
+    // Deduplicate transactions at UI layer
+    const transactions = useMemo(() => {
+        if (!rawTransactions?.length) return [];
+        
+        // Use a Map to deduplicate by transaction ID or a combination of unique identifiers
+        const uniqueTransactions = new Map();
+        
+        for (const transaction of rawTransactions) {
+            // Create a unique key based on transaction properties
+            const uniqueKey = transaction.$id || 
+                `${transaction.Payee}_${transaction.amount}_${transaction.bookingDate}_${transaction.Bank}`;
+                
+            // Only add if we don't already have this transaction
+            if (!uniqueTransactions.has(uniqueKey)) {
+                uniqueTransactions.set(uniqueKey, transaction);
+            }
+        }
+        
+        return Array.from(uniqueTransactions.values());
+    }, [rawTransactions]);
 
     useEffect(() => {
         // Fetch data on initial mount or if data is considered stale by the store
@@ -420,7 +441,7 @@ export function TransactionsTable() {
     }, [fetchTransactions]); // Dependency array includes the fetch function from the store
 
      const table = useReactTable({
-        data: transactions, // Data from the store
+        data: transactions, // Use deduplicated transactions
         columns,
         state: {
             sorting,

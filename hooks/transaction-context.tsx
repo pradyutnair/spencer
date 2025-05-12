@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useTransactionStore } from '@/components/stores/transaction-store';
+import { useTransactionStore, ensureTransactionDataLoaded } from '@/components/stores/transaction-store';
 import { Transaction } from '@/types/index';
 
 interface TransactionContextType {
@@ -11,14 +11,22 @@ interface TransactionContextType {
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
 export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { transactions, loading, fetchTransactions } = useTransactionStore();
+  const { transactions, loading, error, fetchTransactions } = useTransactionStore();
+  const [initialLoadAttempted, setInitialLoadAttempted] = useState(false);
 
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    // More aggressive loading strategy - ensure we always have data
+    const isDataLoaded = ensureTransactionDataLoaded();
+    
+    if (!isDataLoaded && !initialLoadAttempted) {
+      console.log("TransactionProvider: Explicitly triggering data fetch");
+      fetchTransactions();
+      setInitialLoadAttempted(true);
+    }
+  }, [fetchTransactions, initialLoadAttempted]);
 
   return (
-    <TransactionContext.Provider value={{ transactions, loading }}>
+    <TransactionContext.Provider value={{ transactions, loading, error }}>
       {children}
     </TransactionContext.Provider>
   );

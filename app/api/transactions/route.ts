@@ -55,7 +55,7 @@ export const GET = async (req: NextRequest) => {
       console.log(`Fetching transactions for ${bankName} (${requisitionId})`);
       
       // Get all transactions for the requisition from Appwrite
-      const transactions = await pullTransactionsDB(requisitionId);
+      const transactions = await pullTransactionsDB(requisitionId, bankName);
       
       if (bankGroupingParam) {
         // Group by bank name for more efficient client-side processing

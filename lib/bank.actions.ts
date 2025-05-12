@@ -470,7 +470,7 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
                     console.log(`No new transactions found for ${requisitionId}`);
                 }
             } catch (error) {
-                console.error(`Error processing transactions for requisition ID ${requisitionId}:`, error);
+                console.error(`Error processing transactions for requisition ID ${requisitionId} and bank ${bankName}:`, error);
             }
         } catch (error: any) {
             // Check if this entire requisition hit a rate limit
@@ -536,14 +536,16 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
     console.log(`Applying data corrections to ${transactions.length} transactions for ${bankName}`);
 
     if (!Array.isArray(transactions) || transactions.length === 0) {
-        throw new Error("transactions must be a non-empty array");
+        console.warn("Empty transactions array passed to applyDataCorrections");
+        return [];
     }
 
-    transactions.forEach(transaction => {
-        if (!transaction.transactionAmount || !transaction.bookingDate) {
-            throw new Error("transactionAmount and bookingDate are required fields");
-        }
-    });
+    // Check if these are already processed transactions from the database
+    // In this case they already have the required fields in the right format
+    if (transactions[0].amount !== undefined && transactions[0].Payee !== undefined) {
+        console.log("Transactions are already processed, skipping corrections");
+        return transactions;
+    }
 
     const wordsToRemove = [
         "Savings vault", "Flexible profile", "Vault", "To EUR", "To USD", "Exchanged", "Income Sorter",
@@ -565,83 +567,96 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
     const correctedTransactions: Transaction[] = [];
 
     for (const transaction of transactions) {
-        const {
-            transactionAmount,
-            bookingDate,
-            creditorName,
-            debtorName,
-            creditorAccount,
-            debtorAccount,
-            remittanceInformationUnstructuredArray
-        } = transaction;
-
-        const amount = parseFloat(transactionAmount.amount);
-        const currency = transactionAmount.currency;
-
-        let bookingDateObj = dayjs(bookingDate);
-        dayjs.extend(require('dayjs/plugin/weekOfYear'));
-        const year = bookingDateObj.year();
-        const month = bookingDateObj.month() + 1;
-        const week = bookingDateObj.week();
-        const day = bookingDateObj.date();
-        const dayOfWeek = bookingDateObj.day();
-
-        const firstColumn = creditorName ?? debtorName ?? '';
-        const secondColumn = creditorAccount ?? debtorAccount ?? '';
-        const remittanceInfo = remittanceInformationUnstructuredArray?.join(' ') ?? '';
-
-        let payee = firstColumn || secondColumn || remittanceInfo;
-        if (!payee) {
-            payee = "Unknown";
-        }
-
-        if (typeof payee === 'string') {
-            payee = payee.replace(/\b(\w+)\s+\1\b/g, '$1');
-            payee = payee.replace(/\.com/g, '');
-            payee = payee.replace(/\s+/g, ' ').trim();
-            payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
-            payee = payee.replace(/combill/g, '');
-
-            payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
-
-            const result = fuse.search(payee);
-            if (result.length > 0 && result[0].score! < 0.3) {
-                payee = result[0].item;
+        try {
+            // Validate required fields are present
+            if (!transaction.transactionAmount || !transaction.bookingDate) {
+                console.warn("Skipping transaction missing required fields:", 
+                    JSON.stringify(transaction).substring(0, 100) + "...");
+                continue;
             }
-        } else {
+
+            const {
+                transactionAmount,
+                bookingDate,
+                creditorName,
+                debtorName,
+                creditorAccount,
+                debtorAccount,
+                remittanceInformationUnstructuredArray
+            } = transaction;
+
+            const amount = parseFloat(transactionAmount.amount);
+            const currency = transactionAmount.currency;
+
+            let bookingDateObj = dayjs(bookingDate);
+            dayjs.extend(require('dayjs/plugin/weekOfYear'));
+            const year = bookingDateObj.year();
+            const month = bookingDateObj.month() + 1;
+            const week = bookingDateObj.week();
+            const day = bookingDateObj.date();
+            const dayOfWeek = bookingDateObj.day();
+
+            const firstColumn = creditorName ?? debtorName ?? '';
+            const secondColumn = creditorAccount ?? debtorAccount ?? '';
+            const remittanceInfo = remittanceInformationUnstructuredArray?.join(' ') ?? '';
+
+            let payee = firstColumn || secondColumn || remittanceInfo;
+            if (!payee) {
+                payee = "Unknown";
+            }
+
+            if (typeof payee === 'string') {
+                payee = payee.replace(/\b(\w+)\s+\1\b/g, '$1');
+                payee = payee.replace(/\.com/g, '');
+                payee = payee.replace(/\s+/g, ' ').trim();
+                payee = payee.replace(/[^a-zA-Z ]/g, ' ').toLowerCase();
+                payee = payee.replace(/combill/g, '');
+
+                payee = payee.replace(/\b\w/g, (char) => char.toUpperCase());
+
+                const result = fuse.search(payee);
+                if (result.length > 0 && result[0].score! < 0.3) {
+                    payee = result[0].item;
+                }
+            } else {
+                continue;
+            }
+
+            let category = await getCategory(payee);
+
+            const containsWordsToRemove = wordsToRemoveStr.test(payee);
+            const containsWordsToRemoveFirstColumn = wordsToRemoveStr.test(firstColumn);
+            const containsWordsToRemoveRemittanceInfo = wordsToRemoveStr.test(remittanceInfo);
+
+            if (!bankName) {
+                bankName = "YourBankName";
+            } else {
+                bankName = bankName.replace(/_/g, ' ').replace(/-/g, ' ');
+                bankName = bankName.split(' ')[0];
+            }
+
+            if (!containsWordsToRemove && !containsWordsToRemoveFirstColumn && !containsWordsToRemoveRemittanceInfo) {
+                const correctedTransaction: Transaction = {
+                    ...transaction,
+                    amount: amount,
+                    currency: currency,
+                    bookingDate: bookingDateObj.format("YYYY-MM-DD"),
+                    Year: year,
+                    Month: month,
+                    Week: week,
+                    Day: day,
+                    DayOfWeek: dayOfWeek,
+                    Payee: payee,
+                    Bank: bankName,
+                    Description: remittanceInfo,
+                    category: category
+                };
+                correctedTransactions.push(correctedTransaction);
+            }
+        } catch (error) {
+            console.warn("Error processing individual transaction:", error);
+            // Continue processing other transactions
             continue;
-        }
-
-        let category = await getCategory(payee);
-
-        const containsWordsToRemove = wordsToRemoveStr.test(payee);
-        const containsWordsToRemoveFirstColumn = wordsToRemoveStr.test(firstColumn);
-        const containsWordsToRemoveRemittanceInfo = wordsToRemoveStr.test(remittanceInfo);
-
-        if (!bankName) {
-            bankName = "YourBankName";
-        } else {
-            bankName = bankName.replace(/_/g, ' ').replace(/-/g, ' ');
-            bankName = bankName.split(' ')[0];
-        }
-
-        if (!containsWordsToRemove && !containsWordsToRemoveFirstColumn && !containsWordsToRemoveRemittanceInfo) {
-            const correctedTransaction: Transaction = {
-                ...transaction,
-                amount: amount,
-                currency: currency,
-                bookingDate: bookingDateObj.format("YYYY-MM-DD"),
-                Year: year,
-                Month: month,
-                Week: week,
-                Day: day,
-                DayOfWeek: dayOfWeek,
-                Payee: payee,
-                Bank: bankName,
-                Description: remittanceInfo,
-                category: category
-            };
-            correctedTransactions.push(correctedTransaction);
         }
     }
 

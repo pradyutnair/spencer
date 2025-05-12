@@ -6,7 +6,7 @@ import { pullTransactionsDB, pushTransactionsDB } from '@/lib/db.actions';
  */
 export async function fetchAndStore() {
   const requisitions = await getRequisitions();
-  for (const { requisitionId } of requisitions) {
+  for (const { requisitionId, bankName } of requisitions) {
     const transactions = await getGCTransactions({ requisitionIds: [requisitionId] });
     for (const tx of transactions) {
       await pushTransactionsDB(tx, requisitionId);
@@ -17,6 +17,6 @@ export async function fetchAndStore() {
 /**
  * Returns cached transactions from the DB for a given requisition
  */
-export async function getCachedTransactions(requisitionId: string) {
-  return await pullTransactionsDB(requisitionId);
+export async function getCachedTransactions(requisitionId: string, bankName: string) {
+  return await pullTransactionsDB(requisitionId, bankName);
 }

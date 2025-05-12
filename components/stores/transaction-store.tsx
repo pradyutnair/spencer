@@ -19,7 +19,7 @@ interface TransactionState {
   refreshTransactions: () => Promise<void>; // Keep explicit refresh if needed elsewhere
 }
 
-// Function to load initial state safely
+// Function to load initial state safely and trigger an immediate fetch if needed
 const loadInitialState = (): Omit<TransactionState, 'setTransactions' | 'setLoading' | 'setError' | 'fetchTransactions' | 'refreshTransactions'> => {
   try {
     if (typeof window === 'undefined') {
@@ -35,6 +35,7 @@ const loadInitialState = (): Omit<TransactionState, 'setTransactions' | 'setLoad
     const lastFetched = state?.lastFetched || 0;
     const isCacheExpired = Date.now() - lastFetched > CACHE_DURATION;
 
+    // If we have an empty cache or expired cache, this will trigger a fetch on creation
     return {
       transactions: transactions,
       transactionsByBank: transactionsByBank,
@@ -122,7 +123,11 @@ export const useTransactionStore = create<TransactionState>()(
         try {
           // Fetch grouped data directly
           const apiUrl = forceRefresh ? '/api/transactions?refresh=true&bankGrouping=true' : '/api/transactions?bankGrouping=true';
-          const response = await fetch(apiUrl, { cache: 'no-store' });
+          const response = await fetch(apiUrl, { 
+            cache: 'no-store',
+            // Add signal for abort controller in case we need to cancel
+            signal: AbortSignal.timeout(15000) // 15 seconds timeout
+          });
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Failed to fetch transactions' }));
@@ -173,9 +178,42 @@ export const useTransactionStore = create<TransactionState>()(
         lastFetched: state.lastFetched,
         // Don't persist loading or error states
       }),
+      // This is critical - make store fetch data immediately after hydration
+      onRehydrateStorage: () => {
+        return (state) => {
+          if (!state) return;
+          
+          // Check if we need to fetch data immediately
+          const now = Date.now();
+          const needsFetch = !state.transactions || 
+                            state.transactions.length === 0 || 
+                            now - state.lastFetched > CACHE_DURATION;
+          
+          if (needsFetch) {
+            console.log('Fetching transaction data immediately after store hydration');
+            // Wait a small delay to ensure store is fully ready
+            setTimeout(() => {
+              useTransactionStore.getState().fetchTransactions();
+            }, 100);
+          }
+        };
+      }
     }
   )
 );
 
-// Remove transaction-table-store.ts as its functionality is covered here.
-// If you need a separate view/subset, derive it from useTransactionStore.
+// We should also check the TransactionProvider context to ensure it doesn't get stuck in loading
+export const ensureTransactionDataLoaded = (): boolean => {
+  const { transactions, loading, fetchTransactions, lastFetched } = useTransactionStore.getState();
+  const now = Date.now();
+  const needsFetch = !transactions || 
+                     transactions.length === 0 || 
+                     now - lastFetched > CACHE_DURATION;
+  
+  if (needsFetch && !loading) {
+    fetchTransactions();
+    return false;
+  }
+  
+  return !needsFetch || transactions.length > 0;
+};

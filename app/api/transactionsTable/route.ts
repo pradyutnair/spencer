@@ -11,12 +11,12 @@ export const GET = async (req: NextRequest) => {
         let allTransactions: any[] = [];
 
         // Fetch transactions for each requisition from Appwrite
-        for (const { requisitionId } of requisitionData) {
+        for (const { requisitionId, bankName } of requisitionData) {
             // Console log the requisitionId
             console.log('Fetching transactions for Requisition ID:', requisitionId);
             
             // Get all transactions for a requisition from Appwrite
-            const transactions = await pullTransactionsDB(requisitionId);
+            const transactions = await pullTransactionsDB(requisitionId, bankName);
             
             // Concatenate the transactions to the allTransactions array
             allTransactions = allTransactions.concat(transactions);

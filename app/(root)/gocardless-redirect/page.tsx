@@ -1,17 +1,36 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 export default function GoCardlessRedirect() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'error' | 'continue-auth' | 'success'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [continueLink, setContinueLink] = useState<string | null>(null);
+  const [hasAttempted, setHasAttempted] = useState(false);
 
   useEffect(() => {
+    // Prevent multiple attempts
+    if (hasAttempted) return;
+    
+    // Check for error parameters in URL (from GoCardless redirects)
+    const error = searchParams.get('error');
+    const details = searchParams.get('details');
+    
+    if (error) {
+      console.log('GoCardless redirect error:', error, details);
+      setStatus('error');
+      setErrorMessage(details || error || 'Bank connection was unsuccessful');
+      setHasAttempted(true);
+      setTimeout(() => router.push('/my-banks'), 3000);
+      return;
+    }
+
     const completeRequisition = async () => {
+      setHasAttempted(true);
       // Get pending requisition from localStorage
       const pendingRequisitionString = localStorage.getItem('pendingRequisition');
       
@@ -65,7 +84,7 @@ export default function GoCardlessRedirect() {
     };
 
     completeRequisition();
-  }, [router]);
+  }, [router, searchParams, hasAttempted]);
 
   // Handle continuing authentication if needed
   useEffect(() => {

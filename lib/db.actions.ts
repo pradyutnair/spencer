@@ -17,18 +17,43 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
     return;
   }
 
-  // Ensure transaction has a valid ID
+  // Ensure transaction has a valid ID - generate one if missing
   if (!transaction.transactionId || transaction.transactionId.trim() === '') {
-    console.warn('pushTransactionsDB: Transaction missing valid transactionId, skipping:', {
-      payee: transaction.Payee,
-      amount: transaction.amount,
-      date: transaction.bookingDate
+    // Try to generate a transaction ID from available data
+    const payee = transaction.Payee || transaction.payee || 'Unknown';
+    const amount = transaction.amount || 0;
+    const date = transaction.bookingDate || transaction.date || new Date().toISOString().split('T')[0];
+    
+    // Generate fallback transaction ID
+    const dateStr = date.replace(/-/g, '');
+    const amountStr = Math.abs(amount).toString().replace('.', '');
+    const payeeStr = payee.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+    const fallbackId = `fallback_${dateStr}_${amountStr}_${payeeStr}_${Date.now()}`;
+    
+    console.warn('pushTransactionsDB: Generated fallback transactionId for transaction:', {
+      originalPayee: payee,
+      amount: amount,
+      date: date,
+      generatedId: fallbackId
     });
-    return;
+    
+    transaction.transactionId = fallbackId;
+    
+    // Also ensure other required fields are properly formatted
+    transaction.Payee = transaction.Payee || transaction.payee || 'Unknown';
+    transaction.bookingDate = transaction.bookingDate || transaction.date || new Date().toISOString().split('T')[0];
   }
 
   // Create a new admin client
   const { database } = await createAdminClient();
+
+  // Ensure all required fields are present with fallbacks
+  transaction.Payee = transaction.Payee || transaction.payee || 'Unknown';
+  transaction.Bank = transaction.Bank || transaction.bank || 'Unknown Bank';
+  transaction.currency = transaction.currency || 'EUR';
+  transaction.bookingDate = transaction.bookingDate || transaction.date || new Date().toISOString().split('T')[0];
+  transaction.Description = transaction.Description || transaction.description || '';
+  transaction.category = transaction.category || 'Uncategorized';
 
   // Parse transaction.amount to a number and check its range
   let amount = Number(transaction.amount);
@@ -39,6 +64,20 @@ export async function pushTransactionsDB(transaction: Transaction, requisitionId
   // Check if bookingDateTime is a valid date otherwise set it to bookingDate
   if (transaction.bookingDateTime === undefined || isNaN(Date.parse(transaction.bookingDateTime))) {
     transaction.bookingDateTime = transaction.bookingDate;
+  }
+
+  // Generate date-related fields if missing
+  if (!transaction.Year || !transaction.Month || !transaction.Day) {
+    const dateObj = new Date(transaction.bookingDate);
+    transaction.Year = transaction.Year || dateObj.getFullYear();
+    transaction.Month = transaction.Month || (dateObj.getMonth() + 1);
+    transaction.Day = transaction.Day || dateObj.getDate();
+    transaction.DayOfWeek = transaction.DayOfWeek || dateObj.getDay();
+    
+    // Calculate week number (simple approximation)
+    const startOfYear = new Date(dateObj.getFullYear(), 0, 1);
+    const daysDiff = Math.floor((dateObj.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+    transaction.Week = transaction.Week || Math.ceil((daysDiff + startOfYear.getDay() + 1) / 7);
   }
 
   // Check if transaction already exists in the database (only if we have a valid ID)

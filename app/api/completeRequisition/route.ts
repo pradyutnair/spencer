@@ -12,8 +12,7 @@ const CompleteRequisitionSchema = z.object({
   requisitionId: z.string().min(1, 'Requisition ID is required'),
   userId: z.string().min(1, 'User ID is required'),
   bankName: z.string().min(1, 'Bank name is required'),
-  bankLogo: z.string().optional(),
-  institutionId: z.string().optional()
+  bankLogo: z.string().optional()
 });
 
 export async function POST(request: NextRequest) {
@@ -24,7 +23,7 @@ export async function POST(request: NextRequest) {
     
     // Validate request data
     const validatedData = CompleteRequisitionSchema.parse(requisitionData);
-    const { requisitionId, userId, bankName, bankLogo, institutionId } = validatedData;
+    const { requisitionId, userId, bankName, bankLogo } = validatedData;
 
     // Additional validation for authentication
     try {
@@ -141,13 +140,10 @@ export async function POST(request: NextRequest) {
           }, { status: 410 });
           
         case 'LN':
-          console.warn(`Requisition ${requisitionId} still requires linking (status: LN)`);
-          return NextResponse.json({ 
-            error: 'Additional authorization required', 
-            continueLink: requisition.link,
-            status: requisition.status,
-            action: 'continue_authorization'
-          }, { status: 202 });
+        case 'GA':
+          // Success cases - both LN (Linked) and GA (Given Access) mean successful completion
+          console.log(`Requisition ${requisitionId} is successfully completed with status: ${requisition.status}`);
+          break;
           
         case 'GI':
           return NextResponse.json({ 
@@ -156,11 +152,6 @@ export async function POST(request: NextRequest) {
             status: requisition.status,
             action: 'provide_additional_info'
           }, { status: 202 });
-          
-        case 'GA':
-          // Success case - continue processing
-          console.log(`Requisition ${requisitionId} is properly authorized with status: ${requisition.status}`);
-          break;
           
         default:
           console.warn(`Requisition ${requisitionId} has unhandled status: ${requisition.status}`);
@@ -181,17 +172,12 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
       
-      // Prepare data for database insertion
+      // Prepare data for database insertion (only core fields that exist in schema)
       const requisitionDataToSave = {
         userId: userId,
         requisitionId: requisitionId,
         bankName: bankName,
-        bankLogo: bankLogo || null,
-        institutionId: institutionId || bankName,
-        status: 'active',
-        accountCount: requisition.accounts.length,
-        gcStatus: requisition.status,
-        connectedAt: new Date().toISOString()
+        bankLogo: bankLogo || null
       };
 
       // Create document in Appwrite
@@ -217,9 +203,8 @@ export async function POST(request: NextRequest) {
         data: {
           requisitionId: requisitionId,
           bankName: bankName,
-          status: requisition.status,
-          accountCount: requisition.accounts.length,
-          connectedAt: requisitionDataToSave.connectedAt
+          gcStatus: requisition.status,
+          accountCount: requisition.accounts.length
         },
         metadata: {
           processingTime

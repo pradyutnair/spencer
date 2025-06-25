@@ -33,8 +33,8 @@ const loadInitialData = () => {
   }
 };
 
-// Get initial data before creating store
-const initialData = typeof window !== 'undefined' ? loadInitialData() : { transactions: [], lastFetched: 0 };
+// Safe initial state for SSR compatibility
+const initialData = { transactions: [], lastFetched: 0 };
 
 export const useTransactionTableStore = create<TransactionTableState>()(
   persist(
@@ -112,41 +112,7 @@ export const useTransactionTableStore = create<TransactionTableState>()(
     }),
     {
       name: 'transactions-table-storage',
-      storage: createJSONStorage(() => {
-        if (typeof window !== 'undefined') {
-          return {
-            getItem: async (name) => {
-              try {
-                const storedItem = localStorage.getItem(name);
-                return storedItem ? JSON.parse(storedItem) : null;
-              } catch (error) {
-                console.error('Error retrieving transaction table data from storage:', error);
-                return null;
-              }
-            },
-            setItem: async (name, value) => {
-              try {
-                localStorage.setItem(name, JSON.stringify(value));
-              } catch (error) {
-                console.error('Error storing transaction table data:', error);
-              }
-            },
-            removeItem: async (name) => {
-              try {
-                localStorage.removeItem(name);
-              } catch (error) {
-                console.error('Error removing transaction table data from storage:', error);
-              }
-            },
-          };
-        } else {
-          return {
-            getItem: async () => null,
-            setItem: async () => {},
-            removeItem: async () => {},
-          };
-        }
-      }),
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         transactions: state.transactions,
         lastFetched: state.lastFetched,

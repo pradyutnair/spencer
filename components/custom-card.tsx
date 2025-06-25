@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { TransactionProvider, useTransactionContext } from '@/hooks/transaction-context';
 import { useDateRangeStore } from '@/components/stores/date-range-store';
+import { useTransactionStore } from '@/components/stores/transaction-store';
 import { fetchExpenditure, fetchIncome } from '@/lib/analytics.actions';
 import { SkeletonCard } from '@/components/skeletons/card-skeleton';
 import TransactionChart from '@/components/transaction-chart';
@@ -114,9 +115,42 @@ const CustomCard: React.FC<{ firstname: string }> = ({ firstname }) => {
         );
     }
 
-    // Error UI
+    // Error UI with retry option
     if (hasError) {
-        return <div className="text-red-500 p-4 text-center font-semibold">Error loading dashboard data: {transactionError || bankError}</div>;
+        return (
+            <div className="text-red-500 p-4 text-center font-semibold space-y-4">
+                <div>Error loading dashboard data: {transactionError || bankError}</div>
+                <Button 
+                    onClick={() => {
+                        const { fetchTransactions } = useTransactionStore.getState();
+                        fetchTransactions(true);
+                    }}
+                    variant="outline"
+                    className="mx-auto"
+                >
+                    Retry Loading Data
+                </Button>
+            </div>
+        );
+    }
+
+    // Handle case where we have no data and no error (potential loading issue)
+    if (!isLoading && !hasError && (!transactions || transactions.length === 0)) {
+        return (
+            <div className="p-4 text-center space-y-4">
+                <div className="text-muted-foreground">No transaction data available</div>
+                <Button 
+                    onClick={() => {
+                        const { fetchTransactions } = useTransactionStore.getState();
+                        fetchTransactions(true);
+                    }}
+                    variant="outline"
+                    className="mx-auto"
+                >
+                    Load Transaction Data
+                </Button>
+            </div>
+        );
     }
 
     // Main Content UI with Animations

@@ -436,7 +436,7 @@ export function TransactionsTable() {
     }, [rawTransactions]);
 
     useEffect(() => {
-        // Fetch data on initial mount or if data is considered stale by the store
+        // Fetch data on component mount
         fetchTransactions();
     }, [fetchTransactions]); // Dependency array includes the fetch function from the store
 
@@ -463,6 +463,7 @@ export function TransactionsTable() {
         // },
     });
 
+    // Show skeleton during loading
     if (loading) {
         return <TableSkeleton />;
     }

@@ -19,37 +19,18 @@ interface TransactionState {
   refreshTransactions: () => Promise<void>; // Keep explicit refresh if needed elsewhere
 }
 
-// Function to load initial state safely and trigger an immediate fetch if needed
-const loadInitialState = (): Omit<TransactionState, 'setTransactions' | 'setLoading' | 'setError' | 'fetchTransactions' | 'refreshTransactions'> => {
-  try {
-    if (typeof window === 'undefined') {
-      return { transactions: [], transactionsByBank: {}, loading: true, lastFetched: 0, error: null };
-    }
-    const storedData = localStorage.getItem('transactions-storage');
-    if (!storedData) return { transactions: [], transactionsByBank: {}, loading: true, lastFetched: 0, error: null };
-
-    const parsedData = JSON.parse(storedData);
-    const state = parsedData?.state;
-    const transactions = state?.transactions || [];
-    const transactionsByBank = state?.transactionsByBank || {};
-    const lastFetched = state?.lastFetched || 0;
-    const isCacheExpired = Date.now() - lastFetched > CACHE_DURATION;
-
-    // If we have an empty cache or expired cache, this will trigger a fetch on creation
-    return {
-      transactions: transactions,
-      transactionsByBank: transactionsByBank,
-      loading: transactions.length === 0 || isCacheExpired,
-      lastFetched: lastFetched,
-      error: null,
-    };
-  } catch (error) {
-    console.error('Error loading initial transaction data from storage:', error);
-    return { transactions: [], transactionsByBank: {}, loading: true, lastFetched: 0, error: null };
-  }
+// Safe initial state that works for both SSR and client
+const getInitialState = (): Omit<TransactionState, 'setTransactions' | 'setLoading' | 'setError' | 'fetchTransactions' | 'refreshTransactions'> => {
+  return { 
+    transactions: [], 
+    transactionsByBank: {}, 
+    loading: true, 
+    lastFetched: 0, 
+    error: null 
+  };
 };
 
-const initialState = loadInitialState();
+const initialState = getInitialState();
 
 // Helper to group transactions by bank
 const groupTransactionsByBank = (transactions: Transaction[]): Record<string, Transaction[]> => {
@@ -178,20 +159,43 @@ export const useTransactionStore = create<TransactionState>()(
         lastFetched: state.lastFetched,
         // Don't persist loading or error states
       }),
-      // This is critical - make store fetch data immediately after hydration
+      // Handle hydration properly
       onRehydrateStorage: () => {
-        return (state) => {
-          if (!state) return;
+        return (state, error) => {
+          if (error) {
+            console.log('Error during store hydration:', error);
+            return;
+          }
           
-          // Check if we need to fetch data immediately
+          if (!state) {
+            // No persisted state, set loading to false so fetch can be triggered
+            useTransactionStore.setState({ 
+              loading: false,
+              error: null
+            });
+            return;
+          }
+          
+          // Update store with hydrated data
+          const { transactions, transactionsByBank, lastFetched } = state;
           const now = Date.now();
-          const needsFetch = !state.transactions || 
-                            state.transactions.length === 0 || 
-                            now - state.lastFetched > CACHE_DURATION;
+          const hasData = transactions && transactions.length > 0;
+          const isCacheValid = hasData && (now - lastFetched < CACHE_DURATION);
           
-          if (needsFetch) {
-            console.log('Fetching transaction data immediately after store hydration');
-            // Wait a small delay to ensure store is fully ready
+          // Update the store state appropriately
+          useTransactionStore.setState({ 
+            transactions: transactions || [],
+            transactionsByBank: transactionsByBank || {},
+            lastFetched: lastFetched || 0,
+            loading: false, // Always set loading to false after hydration
+            error: null
+          });
+          
+          console.log(`Store hydrated with ${transactions?.length || 0} transactions`);
+          
+          // If data is stale or missing, trigger a background fetch
+          if (!isCacheValid) {
+            console.log('Hydrated data is stale or missing, triggering background fetch');
             setTimeout(() => {
               useTransactionStore.getState().fetchTransactions();
             }, 100);
@@ -202,18 +206,36 @@ export const useTransactionStore = create<TransactionState>()(
   )
 );
 
-// We should also check the TransactionProvider context to ensure it doesn't get stuck in loading
+// Helper function to ensure transaction data is loaded for dashboard
 export const ensureTransactionDataLoaded = (): boolean => {
   const { transactions, loading, fetchTransactions, lastFetched } = useTransactionStore.getState();
   const now = Date.now();
-  const needsFetch = !transactions || 
-                     transactions.length === 0 || 
-                     now - lastFetched > CACHE_DURATION;
+  const hasData = transactions && transactions.length > 0;
+  const isCacheValid = hasData && (now - lastFetched < CACHE_DURATION);
   
-  if (needsFetch && !loading) {
+  // If we have valid cached data, return true
+  if (isCacheValid) {
+    return true;
+  }
+  
+  // If we don't have data and we're not currently loading, start fetching
+  if (!hasData && !loading) {
+    console.log('ensureTransactionDataLoaded: Triggering data fetch');
     fetchTransactions();
     return false;
   }
   
-  return !needsFetch || transactions.length > 0;
+  // If we're currently loading, consider data as "being loaded"
+  if (loading) {
+    return false;
+  }
+  
+  // If we have stale data, trigger refresh but return true for now
+  if (hasData && !isCacheValid) {
+    console.log('ensureTransactionDataLoaded: Data is stale, triggering background refresh');
+    fetchTransactions(); // Background refresh
+    return true; // Still return true since we have data to show
+  }
+  
+  return hasData;
 };

@@ -12,18 +12,42 @@ const TransactionContext = createContext<TransactionContextType | undefined>(und
 
 export const TransactionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { transactions, loading, error, fetchTransactions } = useTransactionStore();
-  const [initialLoadAttempted, setInitialLoadAttempted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Handle client-side hydration
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    // More aggressive loading strategy - ensure we always have data
+    if (!isClient) return; // Don't run on server
+    
+    // Ensure data is loaded when provider mounts
     const isDataLoaded = ensureTransactionDataLoaded();
     
-    if (!isDataLoaded && !initialLoadAttempted) {
-      console.log("TransactionProvider: Explicitly triggering data fetch");
+    console.log(`TransactionProvider: Data loaded status: ${isDataLoaded}, Loading: ${loading}, Transactions: ${transactions.length}`);
+    
+    // If no data is loaded and we're not loading, trigger fetch
+    if (!isDataLoaded && !loading) {
+      console.log("TransactionProvider: Triggering data fetch for dashboard");
       fetchTransactions();
-      setInitialLoadAttempted(true);
     }
-  }, [fetchTransactions, initialLoadAttempted]);
+  }, [isClient, fetchTransactions, loading, transactions.length]);
+
+  // Also trigger a check periodically to ensure data freshness
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const interval = setInterval(() => {
+      const isDataLoaded = ensureTransactionDataLoaded();
+      if (!isDataLoaded && !loading) {
+        console.log("TransactionProvider: Periodic check - triggering data fetch");
+        fetchTransactions();
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [isClient, fetchTransactions, loading]);
 
   return (
     <TransactionContext.Provider value={{ transactions, loading, error }}>

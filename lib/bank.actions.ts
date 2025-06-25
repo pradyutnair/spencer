@@ -460,12 +460,23 @@ export const getGCTransactions = async ({ requisitionIds, bankNames, dateFrom, d
                     allTransactions.push(...correctedTransactions);
     
                     console.log(`Pushing ${correctedTransactions.length} transactions for ${requisitionId} for ${bankName} to the database`);
-                    // Push each transaction to the database
+                    
+                    // Push each transaction to the database with error handling
+                    let successCount = 0;
+                    let errorCount = 0;
+                    
                     for (let transaction of correctedTransactions) {
-                        await pushTransactionsDB(transaction, requisitionId);
+                        try {
+                            await pushTransactionsDB(transaction, requisitionId);
+                            successCount++;
+                        } catch (error) {
+                            errorCount++;
+                            console.error(`Error pushing transaction ${transaction.transactionId || 'unknown'} to database:`, error);
+                            // Continue with next transaction instead of failing the entire batch
+                        }
                     }
     
-                    console.log(`Transactions for ${requisitionId} written to the database`);
+                    console.log(`Transaction processing complete for ${requisitionId}: ${successCount} successful, ${errorCount} failed`);
                 } else {
                     console.log(`No new transactions found for ${requisitionId}`);
                 }
@@ -636,11 +647,26 @@ const applyDataCorrections = async (transactions: Transaction[], bankName?: stri
             }
 
             if (!containsWordsToRemove && !containsWordsToRemoveFirstColumn && !containsWordsToRemoveRemittanceInfo) {
+                // Generate a valid transaction ID if one doesn't exist
+                let transactionId = transaction.transactionId || 
+                                   transaction.internalTransactionId || 
+                                   transaction.endToEndId ||
+                                   transaction.mandateId;
+                
+                // If still no ID, create one from transaction data
+                if (!transactionId || transactionId.trim() === '') {
+                    const dateStr = bookingDateObj.format("YYYYMMDD");
+                    const amountStr = Math.abs(amount).toString().replace('.', '');
+                    const payeeStr = payee.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+                    transactionId = `${dateStr}_${amountStr}_${payeeStr}_${Date.now()}`;
+                }
+
                 const correctedTransaction: Transaction = {
-                    ...transaction,
+                    transactionId: transactionId,
                     amount: amount,
                     currency: currency,
                     bookingDate: bookingDateObj.format("YYYY-MM-DD"),
+                    bookingDateTime: transaction.bookingDateTime || bookingDateObj.format("YYYY-MM-DD"),
                     Year: year,
                     Month: month,
                     Week: week,
